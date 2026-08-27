@@ -834,6 +834,7 @@ export default function DashboardPage() {
         onAddEvent={handleAddEvent}
         onUpdateEvent={handleUpdateEvent}
         eventToEdit={editingEvent}
+        allEvents={events}
       />
 
       <DaySettingsModal

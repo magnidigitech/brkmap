@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { EventData, LocationData } from '@/types';
 import PlacesAutocomplete from '../locations/PlacesAutocomplete';
 import { PlaceSearchResult } from '@/lib/google/places';
+import { timeStringToMinutes } from '@/lib/optimizer/constraints';
 import { Plus, X, Calendar, Clock, MapPin, AlertCircle, Lock, Sliders, Check, Sparkles, Edit3 } from 'lucide-react';
 
 interface EventModalProps {
@@ -13,6 +14,7 @@ interface EventModalProps {
   onAddEvent: (event: EventData) => void;
   onUpdateEvent?: (event: EventData) => void;
   eventToEdit?: EventData | null;
+  allEvents?: EventData[];
 }
 
 export default function EventModal({
@@ -22,6 +24,7 @@ export default function EventModal({
   onAddEvent,
   onUpdateEvent,
   eventToEdit,
+  allEvents = [],
 }: EventModalProps) {
   const [title, setTitle] = useState('');
   const [eventType, setEventType] = useState<EventData['eventType']>('MEETING');
@@ -47,6 +50,26 @@ export default function EventModal({
     }
     const diff = endMins - startMins;
     return diff > 0 ? diff : 45;
+  };
+
+  // Helper to detect if chosen fixed time range overlaps with any other fixed event
+  const getConflictingEventName = (): string | null => {
+    if (!isFixed || !allEvents || allEvents.length === 0) return null;
+    const startMins = timeStringToMinutes(fixedStart);
+    const endMins = timeStringToMinutes(fixedEnd);
+
+    for (const evt of allEvents) {
+      if (eventToEdit && evt.id === eventToEdit.id) continue;
+      if (!evt.isFixed) continue;
+
+      const evtStart = timeStringToMinutes(evt.fixedStart || evt.preferredStart || '10:00');
+      const evtEnd = timeStringToMinutes(evt.fixedEnd || evt.preferredEnd || '11:00');
+
+      if (startMins < evtEnd && evtStart < endMins) {
+        return evt.title;
+      }
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -79,6 +102,8 @@ export default function EventModal({
   }, [eventToEdit, isOpen, locations]);
 
   if (!isOpen) return null;
+
+  const conflictingTitle = getConflictingEventName();
 
   const handleToggleFixed = (fixed: boolean) => {
     setIsFixed(fixed);
@@ -239,7 +264,7 @@ export default function EventModal({
             )}
           </div>
 
-          {/* 3. Schedule Mode (Moved to top right after Location) */}
+          {/* 3. Schedule Mode */}
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -294,11 +319,18 @@ export default function EventModal({
                   <span>Calculated Duration:</span>
                   <span className="font-extrabold">{durationMinutes} minutes</span>
                 </div>
+
+                {conflictingTitle && (
+                  <div className="p-2 rounded-lg bg-rose-100 border border-rose-300 text-rose-900 text-[11px] font-bold flex items-center gap-1.5 animate-pulse">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>⚠️ Warning: {fixedStart} – {fixedEnd} overlaps with existing event "{conflictingTitle}"! Please adjust times.</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* 4. Event Type & Duration (Duration visible ONLY when Flexible is selected) */}
+          {/* 4. Event Type & Duration */}
           <div className={!isFixed ? 'grid grid-cols-2 gap-2.5' : 'block'}>
             <div>
               <label className="text-xs font-bold text-slate-700 mb-1 block">Event Type</label>
@@ -316,7 +348,6 @@ export default function EventModal({
               </select>
             </div>
 
-            {/* Show Duration ONLY when Flexible is selected */}
             {!isFixed && (
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -342,7 +373,7 @@ export default function EventModal({
             )}
           </div>
 
-          {/* 5. Priority Score (Renamed from Political Priority Score) */}
+          {/* 5. Priority Score */}
           <div>
             <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
               <span>Priority Score</span>

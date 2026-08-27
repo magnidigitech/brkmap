@@ -35,6 +35,37 @@ export default function ScheduleTimeline({
 }: ScheduleTimelineProps) {
   const hasItems = items && items.length > 0;
 
+  // Detect overlapping time slots among schedule items
+  const overlappingEventIds = new Set<string>();
+  const conflictDetails: Array<{ id1: string; id2: string; title1: string; title2: string; time: string }> = [];
+
+  if (hasItems) {
+    for (let i = 0; i < items.length; i++) {
+      const item1 = items[i];
+      const start1 = timeStringToMinutes(item1.plannedArrival);
+      const end1 = timeStringToMinutes(item1.plannedDeparture);
+
+      for (let j = i + 1; j < items.length; j++) {
+        const item2 = items[j];
+        const start2 = timeStringToMinutes(item2.plannedArrival);
+        const end2 = timeStringToMinutes(item2.plannedDeparture);
+
+        // Overlap condition: start1 < end2 AND start2 < end1
+        if (start1 < end2 && start2 < end1) {
+          overlappingEventIds.add(item1.event.id);
+          overlappingEventIds.add(item2.event.id);
+          conflictDetails.push({
+            id1: item1.event.id,
+            id2: item2.event.id,
+            title1: item1.event.title,
+            title2: item2.event.title,
+            time: `${item1.plannedArrival} – ${item1.plannedDeparture}`,
+          });
+        }
+      }
+    }
+  }
+
   // Calculate Start Hub -> Stop 1 distance and recommended departure time
   let startTravelMeters = 0;
   let startTravelSeconds = 0;
@@ -58,7 +89,6 @@ export default function ScheduleTimeline({
       const leaveForFixed = fixedStartMins - travelMins - 10;
       recommendedLeaveTime = minutesToTimeString(Math.max(dayStartMins, leaveForFixed));
     } else {
-      // For flexible events, departure is exactly at Day Start Time
       recommendedLeaveTime = startTime;
     }
   }
@@ -117,6 +147,23 @@ export default function ScheduleTimeline({
 
   return (
     <div className="space-y-3 sm:space-y-4 relative pl-7 sm:pl-9 pr-0.5 max-w-full overflow-hidden">
+      {/* TIME CONFLICT WARNING BANNER */}
+      {conflictDetails.length > 0 && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-900 shadow-md space-y-1.5 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-rose-900 uppercase tracking-wide">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-pulse" />
+            <span>Time Conflict Alert ({conflictDetails.length} Overlapping Events)</span>
+          </div>
+          <div className="text-[11px] space-y-1 text-rose-800 font-medium">
+            {conflictDetails.map((c, idx) => (
+              <p key={idx} className="flex items-center gap-1">
+                • <span className="font-bold text-rose-900">"{c.title1}"</span> and <span className="font-bold text-rose-900">"{c.title2}"</span> are scheduled at the same time (<span className="font-extrabold underline">{c.time}</span>). Please edit timing to resolve conflict!
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Connecting Gradient Line */}
       <div className="absolute left-3 sm:left-4 top-6 bottom-6 w-0.5 bg-gradient-to-b from-emerald-500 via-blue-500 to-purple-600 opacity-40 pointer-events-none" />
 
@@ -194,6 +241,7 @@ export default function ScheduleTimeline({
           const isSelected = selectedItemId === item.id;
           const loc = item.event.location;
           const isCompleted = item.execution?.status === 'COMPLETED';
+          const isOverlapping = overlappingEventIds.has(item.event.id);
 
           return (
             <div key={item.id} className="relative">
@@ -202,6 +250,8 @@ export default function ScheduleTimeline({
                 className={`group relative p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md min-w-0 ${
                   isCompleted
                     ? 'bg-slate-50 opacity-80 border-slate-200'
+                    : isOverlapping
+                    ? 'bg-rose-50/90 border-rose-400 ring-2 ring-rose-400/30 shadow-md'
                     : isSelected
                     ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20 shadow-md'
                     : 'bg-white hover:bg-slate-50/80 border-slate-200'
@@ -212,6 +262,8 @@ export default function ScheduleTimeline({
                   className={`absolute -left-7 sm:-left-9 top-3.5 sm:top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-md transition-transform group-hover:scale-105 ${
                     isCompleted
                       ? 'bg-emerald-600 ring-2 ring-emerald-100'
+                      : isOverlapping
+                      ? 'bg-rose-600 ring-2 sm:ring-4 ring-rose-200'
                       : item.event.isFixed
                       ? 'bg-rose-600 ring-2 sm:ring-4 ring-rose-100'
                       : 'bg-blue-600 ring-2 sm:ring-4 ring-blue-100'
@@ -226,21 +278,26 @@ export default function ScheduleTimeline({
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
                       {getEventTypeBadge(item.event.eventType)}
                       {getExecutionBadge(item)}
-                      {item.event.isFixed && (
+                      {isOverlapping && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white flex items-center gap-1 shadow-sm animate-pulse">
+                          <AlertTriangle className="w-3 h-3 text-white" /> Time Conflict Overlap
+                        </span>
+                      )}
+                      {item.event.isFixed && !isOverlapping && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
                           <Lock className="w-2.5 h-2.5" /> Fixed
                         </span>
                       )}
                     </div>
 
-                    <h4 className={`text-xs sm:text-sm font-bold truncate transition-colors ${isCompleted ? 'line-through text-slate-500' : 'text-slate-900 group-hover:text-blue-600'}`}>
+                    <h4 className={`text-xs sm:text-sm font-bold truncate transition-colors ${isCompleted ? 'line-through text-slate-500' : isOverlapping ? 'text-rose-900 font-black' : 'text-slate-900 group-hover:text-blue-600'}`}>
                       {item.event.title}
                     </h4>
                   </div>
 
                   <div className="text-left sm:text-right shrink-0">
-                    <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-200 whitespace-nowrap">
-                      <Clock className="w-3 h-3 text-blue-600" />
+                    <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border whitespace-nowrap ${isOverlapping ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
+                      <Clock className={`w-3 h-3 ${isOverlapping ? 'text-rose-600' : 'text-blue-600'}`} />
                       <span>{item.plannedArrival} – {item.plannedDeparture}</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-0.5">Duration: {item.event.durationMinutes}m</p>
@@ -283,10 +340,10 @@ export default function ScheduleTimeline({
                         e.stopPropagation();
                         onEditEvent(item.event);
                       }}
-                      className="p-1 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                      title="Edit Event"
+                      className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors text-[10px] font-bold flex items-center gap-1 shadow-sm"
+                      title="Edit Event Time & Location"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-3 h-3" /> Edit Time
                     </button>
                   )}
 
