@@ -33,13 +33,13 @@ export function calculateHaversineDistance(
     Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const straightDistance = R * c;
-  // Road factor multiplier (~1.35x for actual road winding distance vs straight line)
-  return Math.round(straightDistance * 1.35);
+  // Road factor multiplier (~1.45x for actual road winding distance vs straight line)
+  return Math.round(straightDistance * 1.45);
 }
 
-// Estimate driving duration based on distance and average speed (35 km/h)
+// Estimate driving duration based on city traffic speeds (21 km/h average speed with traffic signals)
 export function estimateDrivingDuration(distanceMeters: number): number {
-  const avgSpeedMetersPerSec = (35 * 1000) / 3600; // ~9.72 m/s
+  const avgSpeedMetersPerSec = (21 * 1000) / 3600; // ~5.83 m/s (21 km/h)
   return Math.round(distanceMeters / avgSpeedMetersPerSec);
 }
 
@@ -47,7 +47,7 @@ export async function computeRoute(
   origin: { latitude: number; longitude: number },
   destination: { latitude: number; longitude: number }
 ): Promise<RouteCalculationResult> {
-  const serverKey = process.env.GOOGLE_MAPS_SERVER_KEY;
+  const serverKey = process.env.GOOGLE_MAPS_SERVER_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   const isKeyValid = serverKey && serverKey !== 'YOUR_GOOGLE_MAPS_SERVER_KEY' && serverKey.trim().length > 0;
 
   if (!isKeyValid) {
@@ -118,7 +118,7 @@ export async function computeRouteMatrix(
   locations: MatrixItemInput[]
 ): Promise<MatrixCellResult[]> {
   const results: MatrixCellResult[] = [];
-  const serverKey = process.env.GOOGLE_MAPS_SERVER_KEY;
+  const serverKey = process.env.GOOGLE_MAPS_SERVER_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   const isKeyValid = serverKey && serverKey !== 'YOUR_GOOGLE_MAPS_SERVER_KEY' && serverKey.trim().length > 0;
 
   if (!isKeyValid || locations.length <= 1) {
