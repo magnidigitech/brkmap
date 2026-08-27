@@ -7,7 +7,7 @@ export function calculateRealtimeCandidateEta(
   currentLng: number,
   currentLocName: string,
   scheduleItems: ScheduleItemData[],
-  candidateName: string = 'Hon. Nara Lokesh'
+  candidateName: string = 'Hon. Bhashyam Ramakrishna'
 ): LiveCandidateStatus {
   // Find current/next active schedule item
   const activeItem = scheduleItems.find(

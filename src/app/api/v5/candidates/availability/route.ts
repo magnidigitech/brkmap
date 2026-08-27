@@ -5,7 +5,7 @@ const MOCK_AVAILABILITY: CandidateAvailabilityData[] = [
   {
     id: 'av-1',
     candidateId: 'cand-1',
-    candidateName: 'Hon. Nara Lokesh',
+    candidateName: 'Hon. Bhashyam Ramakrishna',
     date: '2026-08-28',
     startTime: '08:00',
     endTime: '20:00',

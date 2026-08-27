@@ -89,7 +89,7 @@ export default function MasterScheduleBoard({
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-blue-600" />
-                <h4 className="text-xs font-extrabold text-slate-900">Hon. Nara Lokesh (Primary Candidate)</h4>
+                <h4 className="text-xs font-extrabold text-slate-900">Hon. Bhashyam Ramakrishna (Primary Candidate)</h4>
               </div>
               <span className="text-[10px] font-bold text-slate-500">{scheduleOption.stopsCount} Stops • {scheduleOption.totalDistanceKm} km</span>
             </div>

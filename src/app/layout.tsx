@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'MapOptima — Political Campaign Smart Schedule & Route Planner',
-  description: 'AI & Google Maps powered schedule optimization platform for political candidates, PAs, and campaign managers.',
+  title: 'Magni Map — Campaign Schedule & Route Planner',
+  description: 'Google Maps powered schedule optimization platform for MP Bhashyam Ramakrishna.',
 };
 
 export default function RootLayout({

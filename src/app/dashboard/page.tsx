@@ -284,14 +284,8 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">MapOptima</h1>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                V7 Predictive Intelligence
-              </span>
+              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">Magni Map</h1>
             </div>
-            <p className="text-[10px] sm:text-xs text-slate-500 font-medium hidden sm:block">
-              Predict → Plan → Execute → Learn Platform
-            </p>
           </div>
 
           <div className="h-6 w-px bg-slate-200 hidden md:block" />
@@ -328,7 +322,7 @@ export default function DashboardPage() {
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Award className="w-3.5 h-3.5" /> V5 Planner
+              <Award className="w-3.5 h-3.5" /> Campaign Planner
             </button>
             <button
               onClick={() => setActiveTab('V6_LEARNING')}
@@ -338,7 +332,7 @@ export default function DashboardPage() {
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Brain className="w-3.5 h-3.5" /> V6 Intelligence
+              <Brain className="w-3.5 h-3.5" /> Intelligence
             </button>
             <button
               onClick={() => setActiveTab('V7_PREDICTIVE')}
@@ -348,7 +342,7 @@ export default function DashboardPage() {
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Target className="w-3.5 h-3.5" /> V7 Predictive
+              <Target className="w-3.5 h-3.5" /> Predictive
             </button>
             <button
               onClick={() => setActiveTab('ANALYTICS')}
@@ -427,7 +421,7 @@ export default function DashboardPage() {
             <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between flex-wrap gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-slate-900">V5 Smart Campaign Scheduler</h2>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">Campaign Scheduler</h2>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
                     Master Campaign Plan
                   </span>

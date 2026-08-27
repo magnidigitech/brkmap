@@ -121,7 +121,7 @@ export default function CandidateLivePage() {
 
         <div className="text-center">
           <h1 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1 justify-center">
-            MAPOPTIMA LIVE <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            MAGNI MAP LIVE <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
           </h1>
           <p className="text-[10px] text-slate-500 font-semibold">{campaign.candidateName}</p>
         </div>
