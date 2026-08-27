@@ -3,7 +3,7 @@
 import React from 'react';
 import { ScheduleItemData } from '@/types';
 import { formatDistance, formatDuration } from '@/lib/optimizer/constraints';
-import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play } from 'lucide-react';
+import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus } from 'lucide-react';
 
 interface ScheduleTimelineProps {
   items: ScheduleItemData[];
@@ -11,6 +11,7 @@ interface ScheduleTimelineProps {
   onSelectItem?: (itemId: string) => void;
   onDeleteEvent?: (eventId: string) => void;
   onOpenContacts?: (item: ScheduleItemData) => void;
+  onAddEventClick?: () => void;
 }
 
 export default function ScheduleTimeline({
@@ -19,15 +20,25 @@ export default function ScheduleTimeline({
   onSelectItem,
   onDeleteEvent,
   onOpenContacts,
+  onAddEventClick,
 }: ScheduleTimelineProps) {
   if (!items || items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/70">
-        <Calendar className="w-10 h-10 text-slate-400 mb-2.5 animate-pulse" />
-        <h4 className="text-sm font-semibold text-slate-700">No Scheduled Events Yet</h4>
-        <p className="text-xs text-slate-500 mt-1 max-w-xs">
-          Add events or click "Optimize Day" to build the candidate's travel schedule.
+      <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/70 space-y-3">
+        <Calendar className="w-10 h-10 text-blue-500 animate-bounce" />
+        <h4 className="text-base font-extrabold text-slate-800">No Scheduled Events Yet</h4>
+        <p className="text-xs text-slate-500 max-w-xs">
+          Click below to add your first campaign event or schedule meeting.
         </p>
+        {onAddEventClick && (
+          <button
+            type="button"
+            onClick={onAddEventClick}
+            className="mt-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> + Add Campaign Event
+          </button>
+        )}
       </div>
     );
   }

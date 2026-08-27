@@ -390,6 +390,14 @@ export default function DashboardPage() {
           </div>
 
           <button
+            onClick={() => setIsAddEventOpen(true)}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Add Event</span>
+          </button>
+
+          <button
             onClick={() => setIsOptimizeOpen(true)}
             className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
           >
@@ -630,6 +638,7 @@ export default function DashboardPage() {
                     onSelectItem={(id) => setSelectedItemId(id)}
                     onDeleteEvent={handleDeleteEvent}
                     onOpenContacts={handleOpenContacts}
+                    onAddEventClick={() => setIsAddEventOpen(true)}
                   />
                 </div>
               </div>

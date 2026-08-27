@@ -53,14 +53,29 @@ export default function EventModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !selectedLocId) return;
+    if (!title.trim()) return;
 
-    const chosenLoc = locations.find((l) => l.id === selectedLocId);
+    let targetLocId = selectedLocId;
+    let chosenLoc = locations.find((l) => l.id === targetLocId);
+
+    if (!chosenLoc) {
+      chosenLoc = {
+        id: `loc-${Date.now()}`,
+        campaignId: 'cmp-ramakrishna-2026',
+        name: title + ' Location',
+        address: 'Guntur, AP',
+        latitude: 16.3067,
+        longitude: 80.4365,
+        category: 'MEETING_HALL',
+      };
+      locations.push(chosenLoc);
+      targetLocId = chosenLoc.id;
+    }
 
     const newEvent: EventData = {
       id: `evt-${Date.now()}`,
-      campaignId: 'cmp-guntur-2026',
-      locationId: selectedLocId,
+      campaignId: 'cmp-ramakrishna-2026',
+      locationId: targetLocId,
       title,
       description,
       eventType,
