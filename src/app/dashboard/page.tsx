@@ -32,6 +32,7 @@ import SmartScheduleGeneratorWizard from '@/components/v5/SmartScheduleGenerator
 import V6AdaptiveLearningPanel from '@/components/v6/V6AdaptiveLearningPanel';
 import V7PredictiveDashboard from '@/components/v7/V7PredictiveDashboard';
 import WhatIfSimulatorModal from '@/components/v7/WhatIfSimulatorModal';
+import DaySettingsModal, { DaySettingsData } from '@/components/schedule/DaySettingsModal';
 import { formatDistance, formatDuration } from '@/lib/optimizer/constraints';
 import { optimizeCampaignSchedule } from '@/lib/optimizer/optimizer';
 import { calculateRealtimeCandidateEta } from '@/lib/optimizer/eta';
@@ -66,6 +67,7 @@ import {
   Brain,
   Target,
   Play,
+  Settings2,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -90,10 +92,17 @@ export default function DashboardPage() {
   const [selectedContactItem, setSelectedContactItem] = useState<ScheduleItemData | null>(null);
   const [diagnosticEvent, setDiagnosticEvent] = useState<EventData | null>(null);
   const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
+  const [daySettings, setDaySettings] = useState<DaySettingsData>({
+    startTime: '08:00',
+    endTime: '20:00',
+    startLocationId: '',
+    endLocationId: '',
+  });
 
   // Modals state
   const [isOptimizeOpen, setIsOptimizeOpen] = useState(false);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [isDaySettingsOpen, setIsDaySettingsOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -136,8 +145,16 @@ export default function DashboardPage() {
     }
   }, [schedule, locations, campaign.candidateName]);
 
-  const runInitialOptimization = async (currentEvents: EventData[], currentLocs: LocationData[]) => {
+  const runInitialOptimization = async (
+    currentEvents: EventData[],
+    currentLocs: LocationData[],
+    settings?: DaySettingsData
+  ) => {
     try {
+      const activeSettings = settings || daySettings;
+      const startId = activeSettings.startLocationId || currentLocs[0]?.id;
+      const endId = activeSettings.endLocationId || currentLocs[0]?.id;
+
       const eventsWithLocs = currentEvents.map((e) => ({
         ...e,
         location: e.location || currentLocs.find((l) => l.id === e.locationId),
@@ -147,10 +164,10 @@ export default function DashboardPage() {
         {
           campaignId: campaign.id,
           date: '2026-08-28',
-          startLocationId: currentLocs[0]?.id,
-          endLocationId: currentLocs[0]?.id,
-          startTime: '08:00',
-          endTime: '20:00',
+          startLocationId: startId,
+          endLocationId: endId,
+          startTime: activeSettings.startTime || '08:00',
+          endTime: activeSettings.endTime || '20:00',
           profile: 'BALANCED',
         },
         eventsWithLocs,
@@ -164,6 +181,11 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed initial schedule optimization:', err);
     }
+  };
+
+  const handleSaveDaySettings = (newSettings: DaySettingsData) => {
+    setDaySettings(newSettings);
+    runInitialOptimization(events, locations, newSettings);
   };
 
   const handleAddEvent = async (newEvent: EventData) => {
@@ -636,6 +658,15 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIsDaySettingsOpen(true)}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm"
+                        title="Configure Start & End Locations and Working Hours"
+                      >
+                        <Settings2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Start / End Settings</span>
+                      </button>
+
                       <ScheduleVersionSelector
                         currentSchedule={schedule}
                         historyVersions={historyVersions}
@@ -750,6 +781,14 @@ export default function DashboardPage() {
         onAddEvent={handleAddEvent}
         onUpdateEvent={handleUpdateEvent}
         eventToEdit={editingEvent}
+      />
+
+      <DaySettingsModal
+        isOpen={isDaySettingsOpen}
+        onClose={() => setIsDaySettingsOpen(false)}
+        locations={locations}
+        currentSettings={daySettings}
+        onSaveSettings={handleSaveDaySettings}
       />
 
       <EmergencyRescheduleModal
