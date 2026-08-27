@@ -29,6 +29,7 @@ export default function CampaignMap({
   const googleMapObj = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
+  const directionsRendererRef = useRef<any>(null);
 
   useEffect(() => {
     if (!isGoogleMapsKeyAvailable()) {
@@ -77,19 +78,25 @@ export default function CampaignMap({
       });
   }, []);
 
-  // Render Google Map Markers & Polyline (including Start & End Hubs)
+  // Render Google Map Markers & Actual Road Driving Route
   useEffect(() => {
     if (!googleMapObj.current || !mapLoaded || useFallback) return;
 
     const google = (window as any).google;
     if (!google) return;
 
-    // Clear old markers & polyline
+    // Clear old markers, polylines, and directions
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+
+    if (directionsRendererRef.current) {
+      directionsRendererRef.current.setMap(null);
+      directionsRendererRef.current = null;
     }
 
     const bounds = new google.maps.LatLngBounds();
@@ -187,17 +194,52 @@ export default function CampaignMap({
       markersRef.current.push(endMarker);
     }
 
-    // Connect Start Hub -> Event Stops -> End Hub with Polyline
+    // Render ACTUAL ROAD DRIVING ROUTE via Google Directions API
     if (pathPoints.length > 1) {
-      const polyline = new google.maps.Polyline({
-        path: pathPoints,
-        geodesic: true,
-        strokeColor: '#2563eb',
-        strokeOpacity: 0.9,
-        strokeWeight: 4,
+      const directionsService = new google.maps.DirectionsService();
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        map: googleMapObj.current,
+        suppressMarkers: true, // We render our custom styled S, 1, 2, 3, E pins!
+        preserveViewport: false,
+        polylineOptions: {
+          strokeColor: '#2563eb',
+          strokeOpacity: 0.85,
+          strokeWeight: 5,
+        },
       });
-      polyline.setMap(googleMapObj.current);
-      polylineRef.current = polyline;
+      directionsRendererRef.current = directionsRenderer;
+
+      const originPos = pathPoints[0];
+      const destPos = pathPoints[pathPoints.length - 1];
+      const waypoints = pathPoints.slice(1, -1).map((pos) => ({
+        location: pos,
+        stopover: true,
+      }));
+
+      directionsService.route(
+        {
+          origin: originPos,
+          destination: destPos,
+          waypoints,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result: any, status: any) => {
+          if (status === google.maps.DirectionsStatus.OK && result) {
+            directionsRenderer.setDirections(result);
+          } else {
+            console.warn('Directions API fallback to straight polyline:', status);
+            const polyline = new google.maps.Polyline({
+              path: pathPoints,
+              geodesic: true,
+              strokeColor: '#2563eb',
+              strokeOpacity: 0.9,
+              strokeWeight: 4,
+            });
+            polyline.setMap(googleMapObj.current);
+            polylineRef.current = polyline;
+          }
+        }
+      );
     }
 
     if (pathPoints.length > 0) {
@@ -213,7 +255,7 @@ export default function CampaignMap({
           <Compass className="w-4 h-4 animate-spin-slow" />
         </div>
         <div>
-          <h4 className="text-xs font-bold text-slate-800">Campaign Routing Map</h4>
+          <h4 className="text-xs font-bold text-slate-800">Campaign Road Directions Map</h4>
           <p className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
             {startLocation && <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Rocket className="w-3 h-3" /> Start</span>}
             <span>•</span>
