@@ -90,7 +90,7 @@ export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> 
   }
 
   try {
-    // Calling Google Places API (New) Text Search
+    // Calling Google Places API (New) Text Search biased to Guntur constituency (16.3067, 80.4365)
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -101,6 +101,15 @@ export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> 
       body: JSON.stringify({
         textQuery: query,
         regionCode: 'IN',
+        locationBias: {
+          circle: {
+            center: {
+              latitude: 16.3067,
+              longitude: 80.4365,
+            },
+            radius: 35000.0, // 35km radius covering Guntur, Mangalagiri, Tenali, Tadikonda
+          },
+        },
       }),
     });
 
@@ -112,7 +121,7 @@ export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> 
     const data = await response.json();
     if (!data.places || !Array.isArray(data.places)) return [];
 
-    return data.places.map((place: any) => ({
+    const mapped = data.places.map((place: any) => ({
       placeId: place.id,
       name: place.displayName?.text || 'Unknown Location',
       formattedAddress: place.formattedAddress || '',
@@ -120,6 +129,24 @@ export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> 
       longitude: place.location?.longitude || 0,
       category: 'OTHER',
     }));
+
+    // Prioritize Guntur & surrounding constituency locations first, then sort by proximity to Guntur center
+    const GUNTUR_LAT = 16.3067;
+    const GUNTUR_LNG = 80.4365;
+
+    mapped.sort((a: PlaceSearchResult, b: PlaceSearchResult) => {
+      const aIsGuntur = a.formattedAddress.toLowerCase().includes('guntur') || a.name.toLowerCase().includes('guntur');
+      const bIsGuntur = b.formattedAddress.toLowerCase().includes('guntur') || b.name.toLowerCase().includes('guntur');
+
+      if (aIsGuntur && !bIsGuntur) return -1;
+      if (!aIsGuntur && bIsGuntur) return 1;
+
+      const distA = Math.hypot(a.latitude - GUNTUR_LAT, a.longitude - GUNTUR_LNG);
+      const distB = Math.hypot(b.latitude - GUNTUR_LAT, b.longitude - GUNTUR_LNG);
+      return distA - distB;
+    });
+
+    return mapped;
   } catch (error) {
     console.error('Error fetching from Places API (New):', error);
     return MOCK_PLACES.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
