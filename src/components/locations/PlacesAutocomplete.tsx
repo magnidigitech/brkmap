@@ -76,6 +76,20 @@ export default function PlacesAutocomplete({
     }
   };
 
+  const handleSelectCustom = (customName: string) => {
+    const customPlace: PlaceSearchResult = {
+      placeId: `custom-loc-${Date.now()}`,
+      name: customName,
+      formattedAddress: `${customName}, Guntur District, Andhra Pradesh`,
+      latitude: 16.3067,
+      longitude: 80.4365,
+      category: 'OTHER',
+    };
+    setQuery(customName);
+    setIsOpen(false);
+    onSelectPlace(customPlace);
+  };
+
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <div className="relative flex items-center">
@@ -102,33 +116,51 @@ export default function PlacesAutocomplete({
           </div>
 
           {results.length === 0 && !loading ? (
-            <div className="p-3 text-center text-xs text-slate-500">
-              No matching locations found for "{query}".
+            <div
+              onClick={() => handleSelectCustom(query)}
+              className="p-3 bg-blue-50/80 hover:bg-blue-100 cursor-pointer text-xs font-semibold text-blue-800 flex items-center justify-between transition-colors"
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                <Plus className="w-4 h-4 text-blue-600 shrink-0" /> Use "{query}" as Custom Location
+              </span>
+              <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-md font-bold shrink-0">Add</span>
             </div>
           ) : (
-            results.map((place) => (
-              <div
-                key={place.placeId}
-                onClick={() => handleSelect(place)}
-                className="p-2.5 hover:bg-blue-50 cursor-pointer transition-colors flex items-start gap-2.5 group"
-              >
-                <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-700 transition-colors">
-                  {getCategoryIcon(place.category)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-xs font-semibold text-slate-800 group-hover:text-blue-700 transition-colors truncate">
-                    {place.name}
-                  </h5>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5">{place.formattedAddress}</p>
-                </div>
-                <button
-                  type="button"
-                  className="p-1 rounded-md text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-100 transition-colors"
+            <>
+              {results.map((place) => (
+                <div
+                  key={place.placeId}
+                  onClick={() => handleSelect(place)}
+                  className="p-2.5 hover:bg-blue-50 cursor-pointer transition-colors flex items-start gap-2.5 group"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))
+                  <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-700 transition-colors">
+                    {getCategoryIcon(place.category)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-xs font-semibold text-slate-800 group-hover:text-blue-700 transition-colors truncate">
+                      {place.name}
+                    </h5>
+                    <p className="text-[10px] text-slate-500 truncate mt-0.5">{place.formattedAddress}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="p-1 rounded-md text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {query.trim().length > 0 && (
+                <div
+                  onClick={() => handleSelectCustom(query)}
+                  className="p-2.5 bg-slate-50 hover:bg-blue-50 cursor-pointer text-xs font-semibold text-blue-700 flex items-center justify-between transition-colors border-t border-slate-100"
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <Plus className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Use custom: "{query}"
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
