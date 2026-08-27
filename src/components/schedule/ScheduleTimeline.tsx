@@ -339,25 +339,23 @@ export default function ScheduleTimeline({
             <div key={item.id} className="relative">
               <div
                 onClick={() => onSelectItem && onSelectItem(item.id)}
-                className={`group relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md min-w-0 space-y-2.5 ${
-                  isCompleted
-                    ? 'bg-slate-50 opacity-75 border-slate-200'
-                    : isIssue
+                className={`group relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md min-w-0 space-y-2.5 ${isCompleted
+                  ? 'bg-slate-50 opacity-75 border-slate-200'
+                  : isIssue
                     ? 'bg-rose-50/60 border-rose-300 ring-1 ring-rose-200'
                     : isSelected
-                    ? 'bg-blue-50/40 border-blue-400 ring-1 ring-blue-300'
-                    : 'bg-white hover:border-slate-300 border-slate-200/80'
-                }`}
+                      ? 'bg-blue-50/40 border-blue-400 ring-1 ring-blue-300'
+                      : 'bg-white hover:border-slate-300 border-slate-200/80'
+                  }`}
               >
                 {/* Sequence Badge */}
                 <div
-                  className={`absolute -left-6 sm:-left-8 top-4 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-bold text-[10px] text-white shadow-xs ${
-                    isCompleted
-                      ? 'bg-emerald-600'
-                      : isIssue
+                  className={`absolute -left-6 sm:-left-8 top-4 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-bold text-[10px] text-white shadow-xs ${isCompleted
+                    ? 'bg-emerald-600'
+                    : isIssue
                       ? 'bg-rose-600 ring-2 ring-rose-100'
                       : 'bg-slate-900'
-                  }`}
+                    }`}
                 >
                   {item.sequence}
                 </div>
@@ -460,7 +458,7 @@ export default function ScheduleTimeline({
               {index < items.length - 1 && (
                 <div className="py-1 px-3 flex items-center justify-between gap-1 text-[10px] text-slate-500 bg-slate-100/60 my-1 rounded-lg border border-slate-200/50 min-w-0">
                   <span className="font-medium truncate">
-                    🚗 Travel: {formatDistance(items[index + 1].travelDistanceMeters)} ({formatDuration(items[index + 1].travelSeconds)})
+                    Travel: {formatDistance(items[index + 1].travelDistanceMeters)} ({formatDuration(items[index + 1].travelSeconds)})
                   </span>
                   <span className="font-medium shrink-0">Buffer: {formatDuration(items[index + 1].bufferSeconds)}</span>
                 </div>
