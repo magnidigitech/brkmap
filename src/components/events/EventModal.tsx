@@ -290,15 +290,15 @@ export default function EventModal({
             <PlacesAutocomplete onSelectPlace={handleSelectPlace} />
 
             {locations.length > 0 && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[11px] text-slate-500">Or pick existing:</span>
+              <div className="space-y-1 mt-1.5 w-full">
+                <label className="text-[11px] font-medium text-slate-500 block">Or pick existing location:</label>
                 <select
                   value={selectedLocId}
                   onChange={(e) => setSelectedLocId(e.target.value)}
-                  className="flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full max-w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 truncate"
                 >
                   {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
+                    <option key={loc.id} value={loc.id} className="truncate">
                       {loc.name} ({loc.category})
                     </option>
                   ))}

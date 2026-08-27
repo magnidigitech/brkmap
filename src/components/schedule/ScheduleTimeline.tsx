@@ -149,16 +149,16 @@ export default function ScheduleTimeline({
     <div className="space-y-3 sm:space-y-4 relative pl-7 sm:pl-9 pr-0.5 max-w-full overflow-hidden">
       {/* TIME CONFLICT WARNING BANNER */}
       {conflictDetails.length > 0 && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-900 shadow-md space-y-1.5 animate-in fade-in duration-200">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-md space-y-2 max-w-full overflow-hidden">
           <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-rose-900 uppercase tracking-wide">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-pulse" />
             <span>Time Conflict Alert ({conflictDetails.length} Overlapping Events)</span>
           </div>
-          <div className="text-[11px] space-y-1 text-rose-800 font-medium">
+          <div className="space-y-1.5 text-[11px] sm:text-xs text-rose-900 font-medium">
             {conflictDetails.map((c, idx) => (
-              <p key={idx} className="flex items-center gap-1">
-                • <span className="font-bold text-rose-900">"{c.title1}"</span> and <span className="font-bold text-rose-900">"{c.title2}"</span> are scheduled at the same time (<span className="font-extrabold underline">{c.time}</span>). Please edit timing to resolve conflict!
-              </p>
+              <div key={idx} className="block leading-relaxed bg-white/80 p-2 rounded-lg border border-rose-200 shadow-sm text-rose-950">
+                • <strong className="font-extrabold text-rose-950">"{c.title1}"</strong> and <strong className="font-extrabold text-rose-950">"{c.title2}"</strong> are scheduled at the exact same time (<span className="font-black underline text-rose-950">{c.time}</span>). Please edit event timing to resolve conflict!
+              </div>
             ))}
           </div>
         </div>

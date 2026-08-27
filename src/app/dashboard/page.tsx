@@ -798,7 +798,7 @@ export default function DashboardPage() {
 
         <button
           onClick={() => setMobileTab('stats')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-4 rounded-xl transition-all ${
+          className={`flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-3 rounded-xl transition-all ${
             mobileTab === 'stats'
               ? 'text-blue-600 bg-blue-50'
               : 'text-slate-500 hover:text-slate-800'
@@ -806,6 +806,14 @@ export default function DashboardPage() {
         >
           <BarChart2 className="w-4 h-4" />
           <span>Metrics</span>
+        </button>
+
+        <button
+          onClick={() => setIsAddEventOpen(true)}
+          className="flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-3 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all shadow-sm active:scale-95"
+        >
+          <Plus className="w-4 h-4 text-blue-600" />
+          <span>Add Event</span>
         </button>
       </div>
 
