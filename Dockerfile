@@ -19,10 +19,10 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Ensure public folder and dev.db exist for runner stage
-RUN mkdir -p public
-RUN DATABASE_URL="file:./dev.db" npx prisma generate
-RUN DATABASE_URL="file:./dev.db" npx prisma db push
-RUN cp -f prisma/dev.db ./dev.db || touch dev.db
+RUN mkdir -p public prisma
+RUN DATABASE_URL="file:./prisma/dev.db" npx prisma generate
+RUN DATABASE_URL="file:./prisma/dev.db" npx prisma db push
+RUN cp -f prisma/dev.db ./initial_dev.db || touch initial_dev.db
 
 # Build Next.js application
 RUN npm run build
@@ -35,6 +35,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV DATABASE_URL="file:/app/prisma/dev.db"
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -43,10 +44,14 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/dev.db ./dev.db
+COPY --from=builder /app/initial_dev.db ./initial_dev.db
+COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
+
+RUN chmod +x ./entrypoint.sh
+RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["./entrypoint.sh"]
