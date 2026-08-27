@@ -766,6 +766,8 @@ export default function DashboardPage() {
                       scheduleItems={schedule?.items || []}
                       selectedItemId={selectedItemId}
                       onSelectItem={(id) => setSelectedItemId(id)}
+                      startLocation={locations.find((l) => l.id === daySettings.startLocationId) || locations[0] || null}
+                      endLocation={locations.find((l) => l.id === daySettings.endLocationId) || locations[0] || null}
                     />
                   </div>
                 </div>

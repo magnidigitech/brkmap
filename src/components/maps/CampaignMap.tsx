@@ -4,13 +4,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getGoogleMapsLoader, isGoogleMapsKeyAvailable } from '@/lib/google/client';
 import { LocationData, ScheduleItemData } from '@/types';
 import { formatDistance, formatDuration } from '@/lib/optimizer/constraints';
-import { Compass, MapPin, Navigation, Layers } from 'lucide-react';
+import { Compass, MapPin, Navigation, Layers, Rocket, Flag } from 'lucide-react';
 
 interface CampaignMapProps {
   locations: LocationData[];
   scheduleItems: ScheduleItemData[];
   selectedItemId?: string | null;
   onSelectItem?: (itemId: string) => void;
+  startLocation?: LocationData | null;
+  endLocation?: LocationData | null;
 }
 
 export default function CampaignMap({
@@ -18,6 +20,8 @@ export default function CampaignMap({
   scheduleItems,
   selectedItemId,
   onSelectItem,
+  startLocation,
+  endLocation,
 }: CampaignMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -73,14 +77,14 @@ export default function CampaignMap({
       });
   }, []);
 
-  // Render Google Map Markers & Polyline
+  // Render Google Map Markers & Polyline (including Start & End Hubs)
   useEffect(() => {
     if (!googleMapObj.current || !mapLoaded || useFallback) return;
 
     const google = (window as any).google;
     if (!google) return;
 
-    // Clear old markers
+    // Clear old markers & polyline
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
@@ -91,6 +95,35 @@ export default function CampaignMap({
     const bounds = new google.maps.LatLngBounds();
     const pathPoints: any[] = [];
 
+    // 1. Day Start Location Marker (Green)
+    if (startLocation) {
+      const startPos = { lat: startLocation.latitude, lng: startLocation.longitude };
+      bounds.extend(startPos);
+      pathPoints.push(startPos);
+
+      const startMarker = new google.maps.Marker({
+        position: startPos,
+        map: googleMapObj.current,
+        title: `🚀 START: ${startLocation.name}`,
+        label: {
+          text: 'S',
+          color: '#ffffff',
+          fontWeight: 'bold',
+          fontSize: '14px',
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 17,
+          fillColor: '#10b981', // Emerald green
+          fillOpacity: 1,
+          strokeWeight: 3,
+          strokeColor: '#ffffff',
+        },
+      });
+      markersRef.current.push(startMarker);
+    }
+
+    // 2. Scheduled Event Markers (1, 2, 3...)
     scheduleItems.forEach((item) => {
       const loc = item.event.location || locations.find((l) => l.id === item.event.locationId);
       if (!loc) return;
@@ -99,7 +132,6 @@ export default function CampaignMap({
       bounds.extend(pos);
       pathPoints.push(pos);
 
-      // Custom marker icon
       const marker = new google.maps.Marker({
         position: pos,
         map: googleMapObj.current,
@@ -127,6 +159,35 @@ export default function CampaignMap({
       markersRef.current.push(marker);
     });
 
+    // 3. Day End Location Marker (Purple)
+    if (endLocation) {
+      const endPos = { lat: endLocation.latitude, lng: endLocation.longitude };
+      bounds.extend(endPos);
+      pathPoints.push(endPos);
+
+      const endMarker = new google.maps.Marker({
+        position: endPos,
+        map: googleMapObj.current,
+        title: `🏁 END: ${endLocation.name}`,
+        label: {
+          text: 'E',
+          color: '#ffffff',
+          fontWeight: 'bold',
+          fontSize: '14px',
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 17,
+          fillColor: '#9333ea', // Purple
+          fillOpacity: 1,
+          strokeWeight: 3,
+          strokeColor: '#ffffff',
+        },
+      });
+      markersRef.current.push(endMarker);
+    }
+
+    // Connect Start Hub -> Event Stops -> End Hub with Polyline
     if (pathPoints.length > 1) {
       const polyline = new google.maps.Polyline({
         path: pathPoints,
@@ -142,7 +203,7 @@ export default function CampaignMap({
     if (pathPoints.length > 0) {
       googleMapObj.current.fitBounds(bounds);
     }
-  }, [scheduleItems, locations, mapLoaded, useFallback]);
+  }, [scheduleItems, locations, startLocation, endLocation, mapLoaded, useFallback]);
 
   return (
     <div className="relative w-full h-full min-h-[350px] sm:min-h-[450px] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex flex-col">
@@ -153,8 +214,12 @@ export default function CampaignMap({
         </div>
         <div>
           <h4 className="text-xs font-bold text-slate-800">Campaign Routing Map</h4>
-          <p className="text-[10px] text-slate-500">
-            {scheduleItems.length} Stops • Interactive View
+          <p className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+            {startLocation && <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Rocket className="w-3 h-3" /> Start</span>}
+            <span>•</span>
+            <span className="font-semibold">{scheduleItems.length} Stops</span>
+            {endLocation && <span>•</span>}
+            {endLocation && <span className="text-purple-600 font-bold flex items-center gap-0.5"><Flag className="w-3 h-3" /> End</span>}
           </p>
         </div>
       </div>
@@ -167,21 +232,29 @@ export default function CampaignMap({
           scheduleItems={scheduleItems}
           selectedItemId={selectedItemId}
           onSelectItem={onSelectItem}
+          startLocation={startLocation}
+          endLocation={endLocation}
         />
       )}
     </div>
   );
 }
 
-// Fallback Light Vector Map
+// Fallback Light Vector Map with Start & End Hub Pins
 function InteractiveVectorMapFallback({
   locations,
   scheduleItems,
   selectedItemId,
   onSelectItem,
+  startLocation,
+  endLocation,
 }: CampaignMapProps) {
-  const lats = locations.map((l) => l.latitude);
-  const lngs = locations.map((l) => l.longitude);
+  const allLocations = [...locations];
+  if (startLocation && !allLocations.find((l) => l.id === startLocation.id)) allLocations.push(startLocation);
+  if (endLocation && !allLocations.find((l) => l.id === endLocation.id)) allLocations.push(endLocation);
+
+  const lats = allLocations.map((l) => l.latitude);
+  const lngs = allLocations.map((l) => l.longitude);
   const minLat = Math.min(...lats, 16.20);
   const maxLat = Math.max(...lats, 16.60);
   const minLng = Math.min(...lngs, 80.30);
@@ -213,8 +286,9 @@ function InteractiveVectorMapFallback({
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <defs>
           <linearGradient id="routeLightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.9" />
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
+            <stop offset="50%" stopColor="#2563eb" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#9333ea" stopOpacity="0.9" />
           </linearGradient>
         </defs>
 
@@ -244,6 +318,26 @@ function InteractiveVectorMapFallback({
 
       {/* Interactive Location Nodes */}
       <div className="relative w-full h-full z-10">
+        {/* START HUB NODE */}
+        {startLocation && (() => {
+          const { x, y } = getXY(startLocation.latitude, startLocation.longitude);
+          return (
+            <div
+              style={{ left: `${x}%`, top: `${y}%` }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 group z-30"
+            >
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-full font-black text-xs text-white shadow-xl bg-emerald-600 ring-4 ring-emerald-200 transform group-hover:scale-125 transition-transform">
+                S
+              </div>
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white border border-emerald-300 rounded-lg p-2 shadow-xl w-48 z-40">
+                <p className="text-[11px] font-black text-emerald-800 flex items-center gap-1"><Rocket className="w-3 h-3 text-emerald-600" /> Day Start Point</p>
+                <p className="text-[10px] text-slate-700 font-bold truncate mt-0.5">{startLocation.name}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* EVENT NODES */}
         {scheduledLocs.map(({ item, loc }) => {
           if (!loc) return null;
           const { x, y } = getXY(loc.latitude, loc.longitude);
@@ -268,7 +362,6 @@ function InteractiveVectorMapFallback({
                 {item.sequence}
               </div>
 
-              {/* Tooltip Card */}
               <div className="absolute left-1/2 -translate-x-1/2 bottom-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white border border-slate-200 rounded-lg p-2 shadow-xl w-44 z-30">
                 <p className="text-[11px] font-bold text-slate-800 truncate">{item.event.title}</p>
                 <p className="text-[10px] text-slate-500 truncate">{loc.name}</p>
@@ -280,12 +373,31 @@ function InteractiveVectorMapFallback({
             </div>
           );
         })}
+
+        {/* END HUB NODE */}
+        {endLocation && (() => {
+          const { x, y } = getXY(endLocation.latitude, endLocation.longitude);
+          return (
+            <div
+              style={{ left: `${x}%`, top: `${y}%` }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 group z-30"
+            >
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-full font-black text-xs text-white shadow-xl bg-purple-600 ring-4 ring-purple-200 transform group-hover:scale-125 transition-transform">
+                E
+              </div>
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white border border-purple-300 rounded-lg p-2 shadow-xl w-48 z-40">
+                <p className="text-[11px] font-black text-purple-800 flex items-center gap-1"><Flag className="w-3 h-3 text-purple-600" /> Day End Point</p>
+                <p className="text-[10px] text-slate-700 font-bold truncate mt-0.5">{endLocation.name}</p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Footer Info Banner */}
       <div className="relative z-10 self-end bg-white/90 border border-slate-200 backdrop-blur-md px-3 py-1.5 rounded-xl text-right text-slate-700 text-xs shadow-sm">
         <p className="font-semibold text-slate-800">Guntur Campaign Bounds</p>
-        <p className="text-[10px] text-slate-500">Live Routes & Travel Times</p>
+        <p className="text-[10px] text-slate-500">Live Routes & Start/End Hub Pins</p>
       </div>
     </div>
   );
