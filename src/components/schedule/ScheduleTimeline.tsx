@@ -111,15 +111,16 @@ export default function ScheduleTimeline({
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4 relative">
-      <div className="absolute left-4 sm:left-6 top-6 bottom-6 w-0.5 bg-gradient-to-b from-emerald-500 via-blue-500 to-purple-600 opacity-40 pointer-events-none" />
+    <div className="space-y-3 sm:space-y-4 relative pl-8 sm:pl-10">
+      {/* Connecting Gradient Line */}
+      <div className="absolute left-3.5 sm:left-4 top-6 bottom-6 w-0.5 bg-gradient-to-b from-emerald-500 via-blue-500 to-purple-600 opacity-40 pointer-events-none" />
 
       {/* DAY START POINT (DEPARTURE HUB) */}
       {startLocation && (
         <div className="relative">
-          <div className="ml-9 sm:ml-12 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-300/80 bg-emerald-50/60 shadow-sm hover:shadow-md transition-all">
+          <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-300/80 bg-emerald-50/60 shadow-sm hover:shadow-md transition-all">
             {/* Start Pin Badge */}
-            <div className="absolute -left-9 sm:-left-12 top-3.5 sm:top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-emerald-100">
+            <div className="absolute -left-8 sm:-left-10 top-3.5 sm:top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-emerald-100">
               <Rocket className="w-4 h-4 text-white" />
             </div>
 
@@ -148,7 +149,7 @@ export default function ScheduleTimeline({
 
           {/* Travel Connector to Stop 1 with Time & Distance */}
           {hasItems && (
-            <div className="ml-9 sm:ml-12 py-2 px-3.5 flex items-center justify-between text-[11px] text-emerald-900 bg-emerald-100/70 my-1.5 rounded-xl border border-emerald-300/80 shadow-sm">
+            <div className="py-2 px-3.5 flex items-center justify-between text-[11px] text-emerald-900 bg-emerald-100/70 my-1.5 rounded-xl border border-emerald-300/80 shadow-sm">
               <div className="flex items-center gap-1.5 font-bold">
                 <Navigation className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Travel to Stop 1: {formatDistance(startTravelMeters)} ({formatDuration(startTravelSeconds)})</span>
@@ -164,7 +165,7 @@ export default function ScheduleTimeline({
 
       {/* EMPTY EVENTS STATE */}
       {!hasItems && (
-        <div className="flex flex-col items-center justify-center p-8 sm:p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/70 space-y-3 ml-9 sm:ml-12">
+        <div className="flex flex-col items-center justify-center p-8 sm:p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/70 space-y-3">
           <Calendar className="w-10 h-10 text-blue-500 animate-bounce" />
           <h4 className="text-base font-extrabold text-slate-800">No Events Added Yet</h4>
           <p className="text-xs text-slate-500 max-w-xs">
@@ -193,7 +194,7 @@ export default function ScheduleTimeline({
             <div key={item.id} className="relative">
               <div
                 onClick={() => onSelectItem && onSelectItem(item.id)}
-                className={`group relative ml-9 sm:ml-12 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md ${
+                className={`group relative p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md ${
                   isCompleted
                     ? 'bg-slate-50 opacity-80 border-slate-200'
                     : isSelected
@@ -203,7 +204,7 @@ export default function ScheduleTimeline({
               >
                 {/* Sequence Badge */}
                 <div
-                  className={`absolute -left-9 sm:-left-12 top-3.5 sm:top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-md transition-transform group-hover:scale-105 ${
+                  className={`absolute -left-8 sm:-left-10 top-3.5 sm:top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-md transition-transform group-hover:scale-105 ${
                     isCompleted
                       ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
                       : item.event.isFixed
@@ -302,7 +303,7 @@ export default function ScheduleTimeline({
 
               {/* Travel & Buffer connector */}
               {index < items.length - 1 && (
-                <div className="ml-9 sm:ml-12 py-1.5 px-3 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 bg-slate-100/70 my-1 rounded-lg border border-slate-200/70">
+                <div className="py-1.5 px-3 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 bg-slate-100/70 my-1 rounded-lg border border-slate-200/70">
                   <div className="flex items-center gap-1.5 text-blue-700 font-medium">
                     <Navigation className="w-3 h-3" />
                     <span>Travel: {formatDistance(items[index + 1].travelDistanceMeters)}</span>
@@ -322,7 +323,7 @@ export default function ScheduleTimeline({
       {endLocation && (
         <div className="relative">
           {hasItems && (
-            <div className="ml-9 sm:ml-12 py-2 px-3.5 flex items-center justify-between text-[11px] text-purple-900 bg-purple-100/70 my-1.5 rounded-xl border border-purple-300/80 shadow-sm">
+            <div className="py-2 px-3.5 flex items-center justify-between text-[11px] text-purple-900 bg-purple-100/70 my-1.5 rounded-xl border border-purple-300/80 shadow-sm">
               <div className="flex items-center gap-1.5 font-bold">
                 <Navigation className="w-3.5 h-3.5 text-purple-700" />
                 <span>Return Travel: {formatDistance(endTravelMeters)} ({formatDuration(endTravelSeconds)})</span>
@@ -334,9 +335,9 @@ export default function ScheduleTimeline({
             </div>
           )}
 
-          <div className="ml-9 sm:ml-12 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-purple-300/80 bg-purple-50/60 shadow-sm hover:shadow-md transition-all">
+          <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-purple-300/80 bg-purple-50/60 shadow-sm hover:shadow-md transition-all">
             {/* End Pin Badge */}
-            <div className="absolute -left-9 sm:-left-12 top-3.5 sm:top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-purple-100">
+            <div className="absolute -left-8 sm:-left-10 top-3.5 sm:top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-purple-100">
               <Flag className="w-4 h-4 text-white" />
             </div>
 
