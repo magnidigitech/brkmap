@@ -33,6 +33,22 @@ export default function EventModal({
   const [selectedLocId, setSelectedLocId] = useState(locations[0]?.id || '');
   const [description, setDescription] = useState('');
 
+  // Helper to calculate duration in minutes between start and end times
+  const calculateDurationFromTimes = (startStr: string, endStr: string): number => {
+    if (!startStr || !endStr) return 45;
+    const [sh, sm] = startStr.split(':').map(Number);
+    const [eh, em] = endStr.split(':').map(Number);
+    if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return 45;
+
+    let startMins = sh * 60 + sm;
+    let endMins = eh * 60 + em;
+    if (endMins <= startMins) {
+      endMins += 24 * 60; // Handle overnight boundary
+    }
+    const diff = endMins - startMins;
+    return diff > 0 ? diff : 45;
+  };
+
   useEffect(() => {
     if (eventToEdit) {
       setTitle(eventToEdit.title);
@@ -40,8 +56,13 @@ export default function EventModal({
       setDurationMinutes(eventToEdit.durationMinutes);
       setPriority(eventToEdit.priority);
       setIsFixed(eventToEdit.isFixed);
-      setFixedStart(eventToEdit.fixedStart || '10:00');
-      setFixedEnd(eventToEdit.fixedEnd || '11:00');
+      const fs = eventToEdit.fixedStart || '10:00';
+      const fe = eventToEdit.fixedEnd || '11:00';
+      setFixedStart(fs);
+      setFixedEnd(fe);
+      if (eventToEdit.isFixed) {
+        setDurationMinutes(calculateDurationFromTimes(fs, fe));
+      }
       setSelectedLocId(eventToEdit.locationId);
       setDescription(eventToEdit.description || '');
     } else {
@@ -58,6 +79,26 @@ export default function EventModal({
   }, [eventToEdit, isOpen, locations]);
 
   if (!isOpen) return null;
+
+  const handleToggleFixed = (fixed: boolean) => {
+    setIsFixed(fixed);
+    if (fixed) {
+      const calculated = calculateDurationFromTimes(fixedStart, fixedEnd);
+      setDurationMinutes(calculated);
+    }
+  };
+
+  const handleFixedStartChange = (val: string) => {
+    setFixedStart(val);
+    const calculated = calculateDurationFromTimes(val, fixedEnd);
+    setDurationMinutes(calculated);
+  };
+
+  const handleFixedEndChange = (val: string) => {
+    setFixedEnd(val);
+    const calculated = calculateDurationFromTimes(fixedStart, val);
+    setDurationMinutes(calculated);
+  };
 
   const handleSelectPlace = (place: PlaceSearchResult) => {
     const found = locations.find((l) => l.placeId === place.placeId || l.name === place.name);
@@ -100,6 +141,10 @@ export default function EventModal({
       targetLocId = chosenLoc.id;
     }
 
+    const calculatedDuration = isFixed
+      ? calculateDurationFromTimes(fixedStart, fixedEnd)
+      : Number(durationMinutes);
+
     const eventPayload: EventData = {
       id: eventToEdit ? eventToEdit.id : `evt-${Date.now()}`,
       campaignId: 'cmp-ramakrishna-2026',
@@ -112,7 +157,7 @@ export default function EventModal({
       preferredEnd: isFixed ? fixedEnd : '17:00',
       fixedStart: isFixed ? fixedStart : null,
       fixedEnd: isFixed ? fixedEnd : null,
-      durationMinutes: Number(durationMinutes),
+      durationMinutes: calculatedDuration,
       priority: Number(priority),
       isFixed,
       isFlexible: !isFixed,
@@ -155,7 +200,7 @@ export default function EventModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Event Title */}
+          {/* 1. Event Title */}
           <div>
             <label className="text-xs font-bold text-slate-700 mb-1 block">Event Title</label>
             <input
@@ -168,7 +213,7 @@ export default function EventModal({
             />
           </div>
 
-          {/* Location Picker */}
+          {/* 2. Location Picker */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-rose-500" /> Location (Google Places Search)
@@ -194,8 +239,67 @@ export default function EventModal({
             )}
           </div>
 
-          {/* Event Type & Duration */}
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* 3. Schedule Mode (Moved to top right after Location) */}
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-amber-600" /> Schedule Mode
+              </span>
+              <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => handleToggleFixed(false)}
+                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition-all ${
+                    !isFixed ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  Flexible
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleFixed(true)}
+                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition-all ${
+                    isFixed ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  Fixed Time
+                </button>
+              </div>
+            </div>
+
+            {isFixed && (
+              <div className="space-y-2 pt-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 mb-0.5 block">Fixed Start Time</label>
+                    <input
+                      type="time"
+                      value={fixedStart}
+                      onChange={(e) => handleFixedStartChange(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 mb-0.5 block">Fixed End Time</label>
+                    <input
+                      type="time"
+                      value={fixedEnd}
+                      onChange={(e) => handleFixedEndChange(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center justify-between">
+                  <span>Calculated Duration:</span>
+                  <span className="font-extrabold">{durationMinutes} minutes</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Event Type & Duration (Duration visible ONLY when Flexible is selected) */}
+          <div className={!isFixed ? 'grid grid-cols-2 gap-2.5' : 'block'}>
             <div>
               <label className="text-xs font-bold text-slate-700 mb-1 block">Event Type</label>
               <select
@@ -212,85 +316,36 @@ export default function EventModal({
               </select>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-slate-700">Duration (minutes)</label>
-                <button
-                  type="button"
-                  onClick={() => setDurationMinutes(42)}
-                  className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 hover:bg-blue-100 transition-colors flex items-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3 text-blue-600" /> Rec: 42m
-                </button>
-              </div>
-              <input
-                type="number"
-                min="15"
-                max="240"
-                step="15"
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Schedule Constraint Type: Fixed vs Flexible */}
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-amber-600" /> Schedule Mode
-              </span>
-              <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setIsFixed(false)}
-                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition-all ${
-                    !isFixed ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'
-                  }`}
-                >
-                  Flexible
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsFixed(true)}
-                  className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition-all ${
-                    isFixed ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'
-                  }`}
-                >
-                  Fixed Time
-                </button>
-              </div>
-            </div>
-
-            {isFixed && (
-              <div className="grid grid-cols-2 gap-2 pt-1.5">
-                <div>
-                  <label className="text-[10px] text-slate-500 mb-0.5 block">Fixed Start Time</label>
-                  <input
-                    type="time"
-                    value={fixedStart}
-                    onChange={(e) => setFixedStart(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800"
-                  />
+            {/* Show Duration ONLY when Flexible is selected */}
+            {!isFixed && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700">Duration (minutes)</label>
+                  <button
+                    type="button"
+                    onClick={() => setDurationMinutes(42)}
+                    className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 hover:bg-blue-100 transition-colors flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-blue-600" /> Rec: 42m
+                  </button>
                 </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 mb-0.5 block">Fixed End Time</label>
-                  <input
-                    type="time"
-                    value={fixedEnd}
-                    onChange={(e) => setFixedEnd(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="15"
+                  max="240"
+                  step="15"
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
               </div>
             )}
           </div>
 
-          {/* Priority Slider */}
+          {/* 5. Priority Score (Renamed from Political Priority Score) */}
           <div>
             <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-              <span>Political Priority Score</span>
+              <span>Priority Score</span>
               <span className="text-blue-600">{priority}/100</span>
             </div>
             <input
