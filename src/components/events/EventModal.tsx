@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EventData, LocationData } from '@/types';
 import PlacesAutocomplete from '../locations/PlacesAutocomplete';
 import { PlaceSearchResult } from '@/lib/google/places';
-import { Plus, X, Calendar, Clock, MapPin, AlertCircle, Lock, Sliders, Check, Sparkles } from 'lucide-react';
+import { Plus, X, Calendar, Clock, MapPin, AlertCircle, Lock, Sliders, Check, Sparkles, Edit3 } from 'lucide-react';
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
   locations: LocationData[];
   onAddEvent: (event: EventData) => void;
+  onUpdateEvent?: (event: EventData) => void;
+  eventToEdit?: EventData | null;
 }
 
 export default function EventModal({
@@ -18,6 +20,8 @@ export default function EventModal({
   onClose,
   locations,
   onAddEvent,
+  onUpdateEvent,
+  eventToEdit,
 }: EventModalProps) {
   const [title, setTitle] = useState('');
   const [eventType, setEventType] = useState<EventData['eventType']>('MEETING');
@@ -29,6 +33,30 @@ export default function EventModal({
   const [selectedLocId, setSelectedLocId] = useState(locations[0]?.id || '');
   const [description, setDescription] = useState('');
 
+  useEffect(() => {
+    if (eventToEdit) {
+      setTitle(eventToEdit.title);
+      setEventType(eventToEdit.eventType);
+      setDurationMinutes(eventToEdit.durationMinutes);
+      setPriority(eventToEdit.priority);
+      setIsFixed(eventToEdit.isFixed);
+      setFixedStart(eventToEdit.fixedStart || '10:00');
+      setFixedEnd(eventToEdit.fixedEnd || '11:00');
+      setSelectedLocId(eventToEdit.locationId);
+      setDescription(eventToEdit.description || '');
+    } else {
+      setTitle('');
+      setEventType('MEETING');
+      setDurationMinutes(45);
+      setPriority(75);
+      setIsFixed(false);
+      setFixedStart('10:00');
+      setFixedEnd('11:00');
+      setSelectedLocId(locations[0]?.id || '');
+      setDescription('');
+    }
+  }, [eventToEdit, isOpen, locations]);
+
   if (!isOpen) return null;
 
   const handleSelectPlace = (place: PlaceSearchResult) => {
@@ -38,7 +66,7 @@ export default function EventModal({
     } else {
       const newLoc: LocationData = {
         id: `loc-${Date.now()}`,
-        campaignId: 'cmp-guntur-2026',
+        campaignId: 'cmp-ramakrishna-2026',
         name: place.name,
         address: place.formattedAddress,
         latitude: place.latitude,
@@ -72,8 +100,8 @@ export default function EventModal({
       targetLocId = chosenLoc.id;
     }
 
-    const newEvent: EventData = {
-      id: `evt-${Date.now()}`,
+    const eventPayload: EventData = {
+      id: eventToEdit ? eventToEdit.id : `evt-${Date.now()}`,
       campaignId: 'cmp-ramakrishna-2026',
       locationId: targetLocId,
       title,
@@ -88,11 +116,15 @@ export default function EventModal({
       priority: Number(priority),
       isFixed,
       isFlexible: !isFixed,
-      status: 'PLANNED',
+      status: eventToEdit ? eventToEdit.status : 'PLANNED',
       location: chosenLoc,
     };
 
-    onAddEvent(newEvent);
+    if (eventToEdit && onUpdateEvent) {
+      onUpdateEvent(eventPayload);
+    } else {
+      onAddEvent(eventPayload);
+    }
     onClose();
   };
 
@@ -102,12 +134,16 @@ export default function EventModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-              <Plus className="w-5 h-5" />
+            <div className={`p-2 rounded-xl ${eventToEdit ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+              {eventToEdit ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800">Add Campaign Event</h3>
-              <p className="text-xs text-slate-500">Schedule meetings, village visits, rallies, or press meets</p>
+              <h3 className="text-base font-bold text-slate-800">
+                {eventToEdit ? 'Edit Campaign Event' : 'Add Campaign Event'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {eventToEdit ? 'Update event details, timing, priority & venue' : 'Schedule meetings, village visits, rallies, or press meets'}
+              </p>
             </div>
           </div>
           <button
@@ -140,20 +176,22 @@ export default function EventModal({
 
             <PlacesAutocomplete onSelectPlace={handleSelectPlace} />
 
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-[11px] text-slate-500">Or pick existing:</span>
-              <select
-                value={selectedLocId}
-                onChange={(e) => setSelectedLocId(e.target.value)}
-                className="flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              >
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name} ({loc.category})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {locations.length > 0 && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[11px] text-slate-500">Or pick existing:</span>
+                <select
+                  value={selectedLocId}
+                  onChange={(e) => setSelectedLocId(e.target.value)}
+                  className="flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name} ({loc.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Event Type & Duration */}
@@ -277,9 +315,11 @@ export default function EventModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md flex items-center gap-1.5 transition-all"
+              className={`px-5 py-2 rounded-xl text-white font-semibold text-xs shadow-md flex items-center gap-1.5 transition-all ${
+                eventToEdit ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
-              <Check className="w-4 h-4" /> Save Event
+              <Check className="w-4 h-4" /> {eventToEdit ? 'Update Event' : 'Save Event'}
             </button>
           </div>
         </form>

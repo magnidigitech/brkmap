@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const newEvent: EventData = {
       id: body.id || `evt-${Date.now()}`,
-      campaignId: body.campaignId || 'cmp-guntur-2026',
-      locationId: body.locationId || INITIAL_LOCATIONS[0].id,
+      campaignId: body.campaignId || 'cmp-ramakrishna-2026',
+      locationId: body.locationId || INITIAL_LOCATIONS[0]?.id || 'loc-1',
       title: body.title,
       description: body.description || '',
       eventType: body.eventType || 'MEETING',
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       isFixed: Boolean(body.isFixed),
       isFlexible: !body.isFixed,
       status: 'PLANNED',
-      location: body.location || INITIAL_LOCATIONS[0],
+      location: body.location,
     };
 
     inMemoryEvents.push(newEvent);
@@ -117,6 +117,60 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, event: newEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to create event' }, { status: 400 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const id = body.id;
+    if (!id) return NextResponse.json({ success: false, error: 'Missing ID' }, { status: 400 });
+
+    const updatedEvent: EventData = {
+      id,
+      campaignId: body.campaignId || 'cmp-ramakrishna-2026',
+      locationId: body.locationId,
+      title: body.title,
+      description: body.description || '',
+      eventType: body.eventType || 'MEETING',
+      date: body.date || '2026-08-28',
+      preferredStart: body.preferredStart || null,
+      preferredEnd: body.preferredEnd || null,
+      fixedStart: body.fixedStart || null,
+      fixedEnd: body.fixedEnd || null,
+      durationMinutes: Number(body.durationMinutes) || 45,
+      priority: Number(body.priority) || 50,
+      isFixed: Boolean(body.isFixed),
+      isFlexible: !body.isFixed,
+      status: body.status || 'PLANNED',
+      location: body.location,
+    };
+
+    inMemoryEvents = inMemoryEvents.map((e) => (e.id === id ? updatedEvent : e));
+
+    try {
+      await prisma.event.update({
+        where: { id },
+        data: {
+          title: updatedEvent.title,
+          description: updatedEvent.description,
+          eventType: updatedEvent.eventType,
+          locationId: updatedEvent.locationId,
+          durationMinutes: updatedEvent.durationMinutes,
+          priority: updatedEvent.priority,
+          isFixed: updatedEvent.isFixed,
+          isFlexible: updatedEvent.isFlexible,
+          fixedStart: updatedEvent.fixedStart,
+          fixedEnd: updatedEvent.fixedEnd,
+        },
+      });
+    } catch (dbErr) {
+      console.warn('Database update warning, retained in memory');
+    }
+
+    return NextResponse.json({ success: true, event: updatedEvent });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: 'Failed to update event' }, { status: 400 });
   }
 }
 

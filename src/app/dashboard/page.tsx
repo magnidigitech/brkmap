@@ -89,6 +89,7 @@ export default function DashboardPage() {
   const [liveStatus, setLiveStatus] = useState<LiveCandidateStatus | null>(null);
   const [selectedContactItem, setSelectedContactItem] = useState<ScheduleItemData | null>(null);
   const [diagnosticEvent, setDiagnosticEvent] = useState<EventData | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
 
   // Modals state
   const [isOptimizeOpen, setIsOptimizeOpen] = useState(false);
@@ -199,6 +200,27 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to persist event deletion:', err);
     }
+  };
+
+  const handleUpdateEvent = async (updatedEvent: EventData) => {
+    const nextEvents = events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e));
+    setEvents(nextEvents);
+    runInitialOptimization(nextEvents, locations);
+
+    try {
+      await fetch('/api/events', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedEvent),
+      });
+    } catch (err) {
+      console.error('Failed to persist event update:', err);
+    }
+  };
+
+  const handleEditEvent = (evt: EventData) => {
+    setEditingEvent(evt);
+    setIsAddEventOpen(true);
   };
 
   const handleOptimizationComplete = (newSchedule: ScheduleData, newConflicts: string[]) => {
@@ -633,9 +655,13 @@ export default function DashboardPage() {
                     items={schedule?.items || []}
                     selectedItemId={selectedItemId}
                     onSelectItem={(id) => setSelectedItemId(id)}
+                    onEditEvent={handleEditEvent}
                     onDeleteEvent={handleDeleteEvent}
                     onOpenContacts={handleOpenContacts}
-                    onAddEventClick={() => setIsAddEventOpen(true)}
+                    onAddEventClick={() => {
+                      setEditingEvent(null);
+                      setIsAddEventOpen(true);
+                    }}
                   />
                 </div>
               </div>
@@ -716,9 +742,14 @@ export default function DashboardPage() {
 
       <EventModal
         isOpen={isAddEventOpen}
-        onClose={() => setIsAddEventOpen(false)}
+        onClose={() => {
+          setIsAddEventOpen(false);
+          setEditingEvent(null);
+        }}
         locations={locations}
         onAddEvent={handleAddEvent}
+        onUpdateEvent={handleUpdateEvent}
+        eventToEdit={editingEvent}
       />
 
       <EmergencyRescheduleModal

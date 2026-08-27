@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { ScheduleItemData } from '@/types';
+import { EventData, ScheduleItemData } from '@/types';
 import { formatDistance, formatDuration } from '@/lib/optimizer/constraints';
-import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus } from 'lucide-react';
+import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, Edit3, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus } from 'lucide-react';
 
 interface ScheduleTimelineProps {
   items: ScheduleItemData[];
   selectedItemId?: string | null;
   onSelectItem?: (itemId: string) => void;
+  onEditEvent?: (event: EventData) => void;
   onDeleteEvent?: (eventId: string) => void;
   onOpenContacts?: (item: ScheduleItemData) => void;
   onAddEventClick?: () => void;
@@ -18,6 +19,7 @@ export default function ScheduleTimeline({
   items,
   selectedItemId,
   onSelectItem,
+  onEditEvent,
   onDeleteEvent,
   onOpenContacts,
   onAddEventClick,
@@ -163,20 +165,36 @@ export default function ScheduleTimeline({
                 <p className="text-[11px] sm:text-xs text-slate-600 mt-1.5 line-clamp-2">{item.event.description}</p>
               )}
 
-              {/* Delete button */}
-              {onDeleteEvent && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteEvent(item.event.id);
-                  }}
-                  className="absolute right-2.5 bottom-2.5 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                  title="Remove from schedule"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
+              {/* Action Buttons: Edit & Delete */}
+              <div className="absolute right-2.5 bottom-2.5 flex items-center gap-1">
+                {onEditEvent && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditEvent(item.event);
+                    }}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                    title="Edit Event"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {onDeleteEvent && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteEvent(item.event.id);
+                    }}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    title="Remove Event"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Travel & Buffer connector */}
