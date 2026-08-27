@@ -78,7 +78,7 @@ export default function CampaignMap({
       });
   }, []);
 
-  // Render Google Map Markers & Actual Road Driving Route
+  // Render Google Map Markers & Real-Road Driving Routes
   useEffect(() => {
     if (!googleMapObj.current || !mapLoaded || useFallback) return;
 
@@ -96,13 +96,13 @@ export default function CampaignMap({
     polylinesRef.current = [];
 
     const bounds = new google.maps.LatLngBounds();
-    const pathPoints: Array<{ lat: number; lng: number }> = [];
+    const pathPoints: Array<{ latitude: number; longitude: number }> = [];
 
     // 1. Day Start Location Marker (Green)
     if (startLocation) {
       const startPos = { lat: startLocation.latitude, lng: startLocation.longitude };
       bounds.extend(startPos);
-      pathPoints.push(startPos);
+      pathPoints.push({ latitude: startLocation.latitude, longitude: startLocation.longitude });
 
       const startMarker = new google.maps.Marker({
         position: startPos,
@@ -134,7 +134,7 @@ export default function CampaignMap({
 
       const pos = { lat: loc.latitude, lng: loc.longitude };
       bounds.extend(pos);
-      pathPoints.push(pos);
+      pathPoints.push({ latitude: loc.latitude, longitude: loc.longitude });
 
       const marker = new google.maps.Marker({
         position: pos,
@@ -168,7 +168,7 @@ export default function CampaignMap({
     if (endLocation) {
       const endPos = { lat: endLocation.latitude, lng: endLocation.longitude };
       bounds.extend(endPos);
-      pathPoints.push(endPos);
+      pathPoints.push({ latitude: endLocation.latitude, longitude: endLocation.longitude });
 
       const endMarker = new google.maps.Marker({
         position: endPos,
@@ -193,55 +193,90 @@ export default function CampaignMap({
       markersRef.current.push(endMarker);
     }
 
-    // Render ACTUAL ROAD DRIVING ROUTE segment by segment
+    // Fetch and render REAL ROAD POLYLINES via server-side Google Routes API
     if (pathPoints.length > 1) {
-      const directionsService = new google.maps.DirectionsService();
-
-      for (let i = 0; i < pathPoints.length - 1; i++) {
-        const fromPoint = pathPoints[i];
-        const toPoint = pathPoints[i + 1];
-
-        const renderer = new google.maps.DirectionsRenderer({
-          map: googleMapObj.current,
-          suppressMarkers: true, // We render our custom styled S, 1, 2, 3, E pins!
-          preserveViewport: true,
-          polylineOptions: {
-            strokeColor: '#2563eb', // Campaign Blue
-            strokeOpacity: 0.9,
-            strokeWeight: 5,
-          },
-        });
-        renderersRef.current.push(renderer);
-
-        const request = {
-          origin: new google.maps.LatLng(fromPoint.lat, fromPoint.lng),
-          destination: new google.maps.LatLng(toPoint.lat, toPoint.lng),
-          travelMode: google.maps.TravelMode.DRIVING,
-        };
-
-        directionsService.route(request, (result: any, status: any) => {
-          if (status === google.maps.DirectionsStatus.OK && result) {
-            renderer.setDirections(result);
-          } else {
-            console.warn(`Directions API fallback for segment ${i}:`, status);
-            const polyline = new google.maps.Polyline({
-              path: [fromPoint, toPoint],
-              geodesic: true,
-              strokeColor: '#2563eb',
-              strokeOpacity: 0.85,
-              strokeWeight: 4,
+      fetch('/api/routes/polyline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: pathPoints }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.polylines) && data.polylines.length > 0) {
+            data.polylines.forEach((encodedPolyline: string) => {
+              if (encodedPolyline && google.maps.geometry?.encoding) {
+                const decodedPath = google.maps.geometry.encoding.decodePath(encodedPolyline);
+                const roadPolyline = new google.maps.Polyline({
+                  path: decodedPath,
+                  geodesic: true,
+                  strokeColor: '#2563eb', // Campaign Blue
+                  strokeOpacity: 0.9,
+                  strokeWeight: 6,
+                  map: googleMapObj.current,
+                });
+                polylinesRef.current.push(roadPolyline);
+              }
             });
-            polyline.setMap(googleMapObj.current);
-            polylinesRef.current.push(polyline);
+          } else {
+            // Fallback to client DirectionsService or Polyline
+            renderDirectionsFallback(google, pathPoints);
           }
+        })
+        .catch(() => {
+          renderDirectionsFallback(google, pathPoints);
         });
-      }
     }
 
     if (pathPoints.length > 0) {
       googleMapObj.current.fitBounds(bounds);
     }
   }, [scheduleItems, locations, startLocation, endLocation, mapLoaded, useFallback]);
+
+  const renderDirectionsFallback = (google: any, points: Array<{ latitude: number; longitude: number }>) => {
+    const directionsService = new google.maps.DirectionsService();
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const fromPoint = points[i];
+      const toPoint = points[i + 1];
+
+      const renderer = new google.maps.DirectionsRenderer({
+        map: googleMapObj.current,
+        suppressMarkers: true,
+        preserveViewport: true,
+        polylineOptions: {
+          strokeColor: '#2563eb',
+          strokeOpacity: 0.9,
+          strokeWeight: 5,
+        },
+      });
+      renderersRef.current.push(renderer);
+
+      const request = {
+        origin: new google.maps.LatLng(fromPoint.latitude, fromPoint.longitude),
+        destination: new google.maps.LatLng(toPoint.latitude, toPoint.longitude),
+        travelMode: google.maps.TravelMode.DRIVING,
+      };
+
+      directionsService.route(request, (result: any, status: any) => {
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          renderer.setDirections(result);
+        } else {
+          const polyline = new google.maps.Polyline({
+            path: [
+              { lat: fromPoint.latitude, lng: fromPoint.longitude },
+              { lat: toPoint.latitude, lng: toPoint.longitude },
+            ],
+            geodesic: true,
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.85,
+            strokeWeight: 4,
+          });
+          polyline.setMap(googleMapObj.current);
+          polylinesRef.current.push(polyline);
+        }
+      });
+    }
+  };
 
   return (
     <div className="relative w-full h-full min-h-[350px] sm:min-h-[450px] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex flex-col">
