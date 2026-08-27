@@ -18,9 +18,11 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Generate Prisma Client & push DB schema
-RUN npx prisma generate
+# Ensure public folder and dev.db exist for runner stage
+RUN mkdir -p public
+RUN DATABASE_URL="file:./dev.db" npx prisma generate
 RUN DATABASE_URL="file:./dev.db" npx prisma db push
+RUN cp -f prisma/dev.db ./dev.db || touch dev.db
 
 # Build Next.js application
 RUN npm run build
