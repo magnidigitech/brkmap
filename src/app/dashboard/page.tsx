@@ -292,6 +292,15 @@ export default function DashboardPage() {
     setIsAddEventOpen(true);
   };
 
+  const handleAutoAdjustEvents = (eventsToUpdate: EventData[]) => {
+    setEvents((prev) =>
+      prev.map((e) => {
+        const match = eventsToUpdate.find((u) => u.id === e.id);
+        return match ? { ...e, ...match } : e;
+      })
+    );
+  };
+
   const handleOptimizationComplete = (newSchedule: ScheduleData, newConflicts: string[]) => {
     setSchedule(newSchedule);
     setHistoryVersions((prev) => [newSchedule, ...prev]);
@@ -729,6 +738,7 @@ export default function DashboardPage() {
                     onEditEvent={handleEditEvent}
                     onDeleteEvent={handleDeleteEvent}
                     onOpenContacts={handleOpenContacts}
+                    onAutoAdjustEvents={handleAutoAdjustEvents}
                     onAddEventClick={() => {
                       setEditingEvent(null);
                       setIsAddEventOpen(true);

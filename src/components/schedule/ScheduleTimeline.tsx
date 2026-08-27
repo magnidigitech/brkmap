@@ -4,7 +4,7 @@ import React from 'react';
 import { EventData, LocationData, ScheduleItemData } from '@/types';
 import { formatDistance, formatDuration, timeStringToMinutes, minutesToTimeString } from '@/lib/optimizer/constraints';
 import { calculateHaversineDistance, estimateDrivingDuration } from '@/lib/google/routes';
-import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, Edit3, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus, Flag, Rocket } from 'lucide-react';
+import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, Edit3, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus, Flag, Rocket, Zap, ArrowRight } from 'lucide-react';
 
 interface ScheduleTimelineProps {
   items: ScheduleItemData[];
@@ -14,6 +14,7 @@ interface ScheduleTimelineProps {
   onDeleteEvent?: (eventId: string) => void;
   onOpenContacts?: (item: ScheduleItemData) => void;
   onAddEventClick?: () => void;
+  onAutoAdjustEvents?: (eventsToUpdate: EventData[]) => void;
   startLocation?: LocationData | null;
   endLocation?: LocationData | null;
   startTime?: string;
@@ -28,6 +29,7 @@ export default function ScheduleTimeline({
   onDeleteEvent,
   onOpenContacts,
   onAddEventClick,
+  onAutoAdjustEvents,
   startLocation,
   endLocation,
   startTime = '08:00',
@@ -35,9 +37,21 @@ export default function ScheduleTimeline({
 }: ScheduleTimelineProps) {
   const hasItems = items && items.length > 0;
 
-  // Detect overlapping time slots among schedule items
+  // Detect Direct Time Overlaps & Travel Time Feasibility Conflicts
   const overlappingEventIds = new Set<string>();
-  const conflictDetails: Array<{ id1: string; id2: string; title1: string; title2: string; time: string }> = [];
+  const travelConflictEventIds = new Set<string>();
+  const conflictDetails: Array<{
+    id1: string;
+    id2: string;
+    title1: string;
+    title2: string;
+    type: 'OVERLAP' | 'TRAVEL';
+    message: string;
+    recommendedStart2?: string;
+    recommendedEnd1?: string;
+    event1Obj?: EventData;
+    event2Obj?: EventData;
+  }> = [];
 
   if (hasItems) {
     for (let i = 0; i < items.length; i++) {
@@ -45,12 +59,12 @@ export default function ScheduleTimeline({
       const start1 = timeStringToMinutes(item1.plannedArrival);
       const end1 = timeStringToMinutes(item1.plannedDeparture);
 
+      // Check 1: Direct Overlap condition with subsequent items
       for (let j = i + 1; j < items.length; j++) {
         const item2 = items[j];
         const start2 = timeStringToMinutes(item2.plannedArrival);
         const end2 = timeStringToMinutes(item2.plannedDeparture);
 
-        // Overlap condition: start1 < end2 AND start2 < end1
         if (start1 < end2 && start2 < end1) {
           overlappingEventIds.add(item1.event.id);
           overlappingEventIds.add(item2.event.id);
@@ -59,12 +73,79 @@ export default function ScheduleTimeline({
             id2: item2.event.id,
             title1: item1.event.title,
             title2: item2.event.title,
-            time: `${item1.plannedArrival} – ${item1.plannedDeparture}`,
+            type: 'OVERLAP',
+            message: `"${item1.event.title}" and "${item2.event.title}" are scheduled at the exact same time (${item1.plannedArrival}–${item1.plannedDeparture}).`,
           });
+        }
+      }
+
+      // Check 2: Travel Feasibility between consecutive stops
+      if (i < items.length - 1) {
+        const nextItem = items[i + 1];
+        const prevDepMins = timeStringToMinutes(item1.plannedDeparture);
+        const travelMins = Math.ceil(nextItem.travelSeconds / 60);
+        const earliestArrivalAtNext = prevDepMins + travelMins;
+
+        if (nextItem.event.isFixed && nextItem.event.fixedStart) {
+          const nextFixedStartMins = timeStringToMinutes(nextItem.event.fixedStart);
+          if (earliestArrivalAtNext > nextFixedStartMins) {
+            const lateness = earliestArrivalAtNext - nextFixedStartMins;
+            travelConflictEventIds.add(nextItem.event.id);
+            travelConflictEventIds.add(item1.event.id);
+
+            const recommendedStart2 = minutesToTimeString(earliestArrivalAtNext);
+            const recommendedEnd1 = minutesToTimeString(nextFixedStartMins - travelMins);
+
+            conflictDetails.push({
+              id1: item1.event.id,
+              id2: nextItem.event.id,
+              title1: item1.event.title,
+              title2: nextItem.event.title,
+              type: 'TRAVEL',
+              message: `Departure from "${item1.event.title}" (${item1.plannedDeparture}) + ${travelMins}m travel time means candidate arrives at ${recommendedStart2}, missing "${nextItem.event.title}" fixed start time (${nextItem.event.fixedStart}) by ${lateness}m!`,
+              recommendedStart2,
+              recommendedEnd1,
+              event1Obj: item1.event,
+              event2Obj: nextItem.event,
+            });
+          }
         }
       }
     }
   }
+
+  // Auto-adjust action: Shift Event 2 Start Time
+  const handleShiftNextEventStart = (evt2: EventData, newStart: string) => {
+    if (!onAutoAdjustEvents) return;
+    const dur = evt2.durationMinutes;
+    const startMins = timeStringToMinutes(newStart);
+    const newEnd = minutesToTimeString(startMins + dur);
+
+    const updatedEvt: EventData = {
+      ...evt2,
+      fixedStart: newStart,
+      fixedEnd: newEnd,
+      preferredStart: newStart,
+      preferredEnd: newEnd,
+    };
+    onAutoAdjustEvents([updatedEvt]);
+  };
+
+  // Auto-adjust action: End Event 1 Early
+  const handleEndPrevEventEarly = (evt1: EventData, newEnd: string) => {
+    if (!onAutoAdjustEvents) return;
+    const startMins = timeStringToMinutes(evt1.fixedStart || evt1.preferredStart || '10:00');
+    const endMins = timeStringToMinutes(newEnd);
+    const newDur = Math.max(15, endMins - startMins);
+
+    const updatedEvt: EventData = {
+      ...evt1,
+      fixedEnd: newEnd,
+      preferredEnd: newEnd,
+      durationMinutes: newDur,
+    };
+    onAutoAdjustEvents([updatedEvt]);
+  };
 
   // Calculate Start Hub -> Stop 1 distance and recommended departure time
   let startTravelMeters = 0;
@@ -149,15 +230,44 @@ export default function ScheduleTimeline({
     <div className="space-y-3 sm:space-y-4 relative pl-7 sm:pl-9 pr-0.5 max-w-full overflow-hidden">
       {/* TIME CONFLICT WARNING BANNER */}
       {conflictDetails.length > 0 && (
-        <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-md space-y-2 max-w-full overflow-hidden">
-          <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-rose-900 uppercase tracking-wide">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 animate-pulse" />
-            <span>Time Conflict Alert ({conflictDetails.length} Overlapping Events)</span>
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-md space-y-2.5 max-w-full overflow-hidden">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-rose-900 uppercase tracking-wide">
+              <AlertTriangle className="w-4.5 h-4.5 text-rose-600 shrink-0 animate-pulse" />
+              <span>Schedule Feasibility Alert ({conflictDetails.length} Conflict{conflictDetails.length > 1 ? 's' : ''})</span>
+            </div>
+            <span className="text-[10px] font-bold bg-rose-600 text-white px-2 py-0.5 rounded-full uppercase">Action Required</span>
           </div>
-          <div className="space-y-1.5 text-[11px] sm:text-xs text-rose-900 font-medium">
+
+          <div className="space-y-2 text-[11px] sm:text-xs text-rose-900 font-medium">
             {conflictDetails.map((c, idx) => (
-              <div key={idx} className="block leading-relaxed bg-white/80 p-2 rounded-lg border border-rose-200 shadow-sm text-rose-950">
-                • <strong className="font-extrabold text-rose-950">"{c.title1}"</strong> and <strong className="font-extrabold text-rose-950">"{c.title2}"</strong> are scheduled at the exact same time (<span className="font-black underline text-rose-950">{c.time}</span>). Please edit event timing to resolve conflict!
+              <div key={idx} className="block leading-relaxed bg-white/90 p-3 rounded-xl border border-rose-200 shadow-sm text-rose-950 space-y-2">
+                <p>
+                  • <strong className="font-extrabold text-rose-950">{c.message}</strong>
+                </p>
+
+                {c.type === 'TRAVEL' && c.event1Obj && c.event2Obj && c.recommendedStart2 && (
+                  <div className="pt-1 flex items-center gap-2 flex-wrap border-t border-rose-100">
+                    <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Quick Auto-Adjust:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleShiftNextEventStart(c.event2Obj!, c.recommendedStart2!)}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] shadow-sm transition-all flex items-center gap-1"
+                    >
+                      <Zap className="w-3 h-3 text-amber-300" /> Shift "{c.title2}" Start to {c.recommendedStart2}
+                    </button>
+
+                    {c.recommendedEnd1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleEndPrevEventEarly(c.event1Obj!, c.recommendedEnd1!)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] shadow-sm transition-all flex items-center gap-1"
+                      >
+                        <Clock className="w-3 h-3 text-white" /> End "{c.title1}" Early at {c.recommendedEnd1}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -242,6 +352,7 @@ export default function ScheduleTimeline({
           const loc = item.event.location;
           const isCompleted = item.execution?.status === 'COMPLETED';
           const isOverlapping = overlappingEventIds.has(item.event.id);
+          const isTravelConflict = travelConflictEventIds.has(item.event.id);
 
           return (
             <div key={item.id} className="relative">
@@ -250,7 +361,7 @@ export default function ScheduleTimeline({
                 className={`group relative p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md min-w-0 ${
                   isCompleted
                     ? 'bg-slate-50 opacity-80 border-slate-200'
-                    : isOverlapping
+                    : isOverlapping || isTravelConflict
                     ? 'bg-rose-50/90 border-rose-400 ring-2 ring-rose-400/30 shadow-md'
                     : isSelected
                     ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20 shadow-md'
@@ -262,7 +373,7 @@ export default function ScheduleTimeline({
                   className={`absolute -left-7 sm:-left-9 top-3.5 sm:top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-md transition-transform group-hover:scale-105 ${
                     isCompleted
                       ? 'bg-emerald-600 ring-2 ring-emerald-100'
-                      : isOverlapping
+                      : isOverlapping || isTravelConflict
                       ? 'bg-rose-600 ring-2 sm:ring-4 ring-rose-200'
                       : item.event.isFixed
                       ? 'bg-rose-600 ring-2 sm:ring-4 ring-rose-100'
@@ -283,30 +394,35 @@ export default function ScheduleTimeline({
                           <AlertTriangle className="w-3 h-3 text-white" /> Time Conflict Overlap
                         </span>
                       )}
-                      {item.event.isFixed && !isOverlapping && (
+                      {isTravelConflict && !isOverlapping && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1 shadow-sm animate-pulse">
+                          <Clock className="w-3 h-3 text-white" /> Insufficient Travel Time
+                        </span>
+                      )}
+                      {item.event.isFixed && !isOverlapping && !isTravelConflict && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
                           <Lock className="w-2.5 h-2.5" /> Fixed
                         </span>
                       )}
                     </div>
 
-                    <h4 className={`text-xs sm:text-sm font-bold truncate transition-colors ${isCompleted ? 'line-through text-slate-500' : isOverlapping ? 'text-rose-900 font-black' : 'text-slate-900 group-hover:text-blue-600'}`}>
+                    <h4 className={`text-xs sm:text-sm font-bold truncate transition-colors ${isCompleted ? 'line-through text-slate-500' : isOverlapping || isTravelConflict ? 'text-rose-950 font-black' : 'text-slate-900 group-hover:text-blue-600'}`}>
                       {item.event.title}
                     </h4>
                   </div>
 
                   <div className="text-left sm:text-right shrink-0">
-                    <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border whitespace-nowrap ${isOverlapping ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
-                      <Clock className={`w-3 h-3 ${isOverlapping ? 'text-rose-600' : 'text-blue-600'}`} />
+                    <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border whitespace-nowrap ${isOverlapping || isTravelConflict ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
+                      <Clock className={`w-3 h-3 ${isOverlapping || isTravelConflict ? 'text-rose-600' : 'text-blue-600'}`} />
                       <span>{item.plannedArrival} – {item.plannedDeparture}</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-0.5">Duration: {item.event.durationMinutes}m</p>
                   </div>
                 </div>
 
-                {/* Location details */}
+                {/* Location details & Action buttons */}
                 {loc && (
-                  <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200/80 min-w-0">
+                  <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200/80 min-w-0 flex-wrap sm:flex-nowrap">
                     <div className="flex items-center gap-1.5 truncate min-w-0 flex-1">
                       <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                       <span className="font-semibold truncate max-w-[140px] sm:max-w-xs">{loc.name}</span>
