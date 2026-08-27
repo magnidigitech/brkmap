@@ -4,7 +4,7 @@ import React from 'react';
 import { EventData, LocationData, ScheduleItemData } from '@/types';
 import { formatDistance, formatDuration, timeStringToMinutes, minutesToTimeString } from '@/lib/optimizer/constraints';
 import { calculateHaversineDistance, estimateDrivingDuration } from '@/lib/google/routes';
-import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, Edit3, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus, Flag, Rocket, Zap, ArrowRight } from 'lucide-react';
+import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, Edit3, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus, Flag, Rocket, Zap, Navigation2 } from 'lucide-react';
 
 interface ScheduleTimelineProps {
   items: ScheduleItemData[];
@@ -194,65 +194,48 @@ export default function ScheduleTimeline({
     expectedReturnArrival = minutesToTimeString(lastDepartureMins + travelMins);
   }
 
-  const getEventTypeBadge = (type: string) => {
+  const getEventTypeTag = (type: string) => {
     switch (type) {
       case 'PUBLIC_MEETING':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 border border-purple-200">Public Rally</span>;
+        return 'Public Rally';
       case 'VIP_MEETING':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 border border-rose-200">VIP Meeting</span>;
+        return 'VIP Meeting';
       case 'VILLAGE_VISIT':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">Village Visit</span>;
+        return 'Village Visit';
       case 'PRESS_CONF':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">Media Press</span>;
+        return 'Media Press';
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 border border-blue-200">Campaign Event</span>;
+        return 'Campaign Event';
     }
-  };
-
-  const getExecutionBadge = (item: ScheduleItemData) => {
-    const status = item.execution?.status;
-    if (status === 'COMPLETED') {
-      return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-600" /> Completed</span>;
-    }
-    if (status === 'ARRIVED' || status === 'IN_PROGRESS') {
-      return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300 flex items-center gap-1"><Play className="w-3 h-3 text-blue-600 animate-pulse" /> Active Stop</span>;
-    }
-    if (status === 'SKIPPED') {
-      return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><FastForward className="w-3 h-3" /> Skipped</span>;
-    }
-    if (item.execution?.delayMinutes && item.execution.delayMinutes > 10) {
-      return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-amber-600" /> +{item.execution.delayMinutes}m Delay</span>;
-    }
-    return null;
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4 relative pl-7 sm:pl-9 pr-0.5 max-w-full overflow-hidden">
+    <div className="space-y-3 relative pl-6 sm:pl-8 pr-0.5 max-w-full overflow-hidden font-sans">
       {/* TIME CONFLICT WARNING BANNER */}
       {conflictDetails.length > 0 && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-md space-y-2.5 max-w-full overflow-hidden">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 shadow-sm space-y-2.5 max-w-full overflow-hidden">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-rose-900 uppercase tracking-wide">
-              <AlertTriangle className="w-4.5 h-4.5 text-rose-600 shrink-0 animate-pulse" />
-              <span>Schedule Feasibility Alert ({conflictDetails.length} Conflict{conflictDetails.length > 1 ? 's' : ''})</span>
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-rose-900">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>Schedule Feasibility Alert ({conflictDetails.length} Issue{conflictDetails.length > 1 ? 's' : ''})</span>
             </div>
-            <span className="text-[10px] font-bold bg-rose-600 text-white px-2 py-0.5 rounded-full uppercase">Action Required</span>
+            <span className="text-[10px] font-bold bg-rose-600 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Action Required</span>
           </div>
 
           <div className="space-y-2 text-[11px] sm:text-xs text-rose-900 font-medium">
             {conflictDetails.map((c, idx) => (
-              <div key={idx} className="block leading-relaxed bg-white/90 p-3 rounded-xl border border-rose-200 shadow-sm text-rose-950 space-y-2">
-                <p>
-                  • <strong className="font-extrabold text-rose-950">{c.message}</strong>
+              <div key={idx} className="block leading-relaxed bg-white/90 p-3 rounded-xl border border-rose-200/80 shadow-xs text-rose-950 space-y-2">
+                <p className="text-slate-800">
+                  • <strong className="font-extrabold text-slate-900">{c.message}</strong>
                 </p>
 
                 {c.type === 'TRAVEL' && c.event1Obj && c.event2Obj && c.recommendedStart2 && (
-                  <div className="pt-1 flex items-center gap-2 flex-wrap border-t border-rose-100">
-                    <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Quick Auto-Adjust:</span>
+                  <div className="pt-1.5 flex items-center gap-2 flex-wrap border-t border-rose-100">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quick Adjust:</span>
                     <button
                       type="button"
                       onClick={() => handleShiftNextEventStart(c.event2Obj!, c.recommendedStart2!)}
-                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] shadow-sm transition-all flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[10px] shadow-xs transition-all flex items-center gap-1"
                     >
                       <Zap className="w-3 h-3 text-amber-300" /> Shift "{c.title2}" Start to {c.recommendedStart2}
                     </button>
@@ -261,9 +244,9 @@ export default function ScheduleTimeline({
                       <button
                         type="button"
                         onClick={() => handleEndPrevEventEarly(c.event1Obj!, c.recommendedEnd1!)}
-                        className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] shadow-sm transition-all flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold text-[10px] shadow-xs transition-all flex items-center gap-1"
                       >
-                        <Clock className="w-3 h-3 text-white" /> End "{c.title1}" Early at {c.recommendedEnd1}
+                        <Clock className="w-3 h-3 text-slate-600" /> End "{c.title1}" Early at {c.recommendedEnd1}
                       </button>
                     )}
                   </div>
@@ -274,52 +257,49 @@ export default function ScheduleTimeline({
         </div>
       )}
 
-      {/* Connecting Gradient Line */}
-      <div className="absolute left-3 sm:left-4 top-6 bottom-6 w-0.5 bg-gradient-to-b from-emerald-500 via-blue-500 to-purple-600 opacity-40 pointer-events-none" />
+      {/* Connecting Timeline Line */}
+      <div className="absolute left-2.5 sm:left-3.5 top-6 bottom-6 w-0.5 bg-slate-200 pointer-events-none" />
 
       {/* DAY START POINT (DEPARTURE HUB) */}
       {startLocation && (
         <div className="relative">
-          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-300/80 bg-emerald-50/60 shadow-sm hover:shadow-md transition-all min-w-0">
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 bg-slate-900 text-white shadow-sm hover:shadow-md transition-all min-w-0">
             {/* Start Pin Badge */}
-            <div className="absolute -left-7 sm:-left-9 top-3.5 sm:top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-lg ring-2 sm:ring-4 ring-emerald-100">
-              <Rocket className="w-3.5 h-3.5 text-white" />
+            <div className="absolute -left-6 sm:-left-8 top-4 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-[10px] shadow-md ring-2 ring-white">
+              <Rocket className="w-3 h-3 text-white" />
             </div>
 
             <div className="flex items-start justify-between flex-wrap sm:flex-nowrap gap-2 min-w-0">
               <div className="min-w-0 flex-1">
-                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-600 text-white uppercase tracking-wider shadow-sm flex items-center gap-1 w-fit whitespace-nowrap">
-                  <Rocket className="w-3 h-3" /> DAY DEPARTURE (START POINT)
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider flex items-center gap-1 w-fit">
+                  <Rocket className="w-2.5 h-2.5" /> Day Departure Hub
                 </span>
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 mt-1.5 truncate">
+                <h4 className="text-xs sm:text-sm font-bold text-white mt-1 truncate">
                   {startLocation.name}
                 </h4>
                 {startLocation.address && (
-                  <p className="text-[10px] sm:text-[11px] text-slate-600 mt-0.5 flex items-center gap-1 min-w-0">
-                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                    <span className="truncate max-w-[180px] sm:max-w-xs md:max-w-md block">{startLocation.address}</span>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 min-w-0">
+                    <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span className="truncate max-w-[180px] sm:max-w-xs block">{startLocation.address}</span>
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-900 bg-white px-2 py-1 rounded-lg border border-emerald-200 shadow-sm whitespace-nowrap shrink-0">
-                <Clock className="w-3 h-3 text-emerald-600" />
-                <span>Leave Hub at {recommendedLeaveTime}</span>
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-200 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700 whitespace-nowrap shrink-0">
+                <Clock className="w-3 h-3 text-emerald-400" />
+                <span>Leave at {recommendedLeaveTime}</span>
               </div>
             </div>
           </div>
 
-          {/* Travel Connector to Stop 1 with Time & Distance */}
+          {/* Travel Connector to Stop 1 */}
           {hasItems && (
-            <div className="py-2 px-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] sm:text-[11px] text-emerald-900 bg-emerald-100/70 my-1.5 rounded-xl border border-emerald-300/80 shadow-sm min-w-0">
-              <div className="flex items-center gap-1.5 font-bold truncate">
-                <Navigation className="w-3 h-3 text-emerald-700 shrink-0" />
+            <div className="py-1.5 px-3 flex items-center justify-between gap-1 text-[10px] sm:text-[11px] text-slate-600 bg-slate-100/80 my-1.5 rounded-xl border border-slate-200/60 min-w-0">
+              <div className="flex items-center gap-1.5 font-medium truncate">
+                <Navigation2 className="w-3 h-3 text-slate-500 shrink-0" />
                 <span className="truncate">Travel to Stop 1: {formatDistance(startTravelMeters)} ({formatDuration(startTravelSeconds)})</span>
               </div>
-              <div className="flex items-center gap-1 font-extrabold text-emerald-800 bg-white/80 px-2 py-0.5 rounded-md border border-emerald-200 whitespace-nowrap shrink-0 self-start sm:self-auto">
-                <Clock className="w-3 h-3 text-emerald-600" />
-                <span>Leave {recommendedLeaveTime} → Arrive {items[0].plannedArrival}</span>
-              </div>
+              <span className="font-semibold text-slate-700 shrink-0">Leave {recommendedLeaveTime} → Arrive {items[0].plannedArrival}</span>
             </div>
           )}
         </div>
@@ -327,9 +307,9 @@ export default function ScheduleTimeline({
 
       {/* EMPTY EVENTS STATE */}
       {!hasItems && (
-        <div className="flex flex-col items-center justify-center p-6 sm:p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/70 space-y-3">
-          <Calendar className="w-9 h-9 text-blue-500 animate-bounce" />
-          <h4 className="text-sm sm:text-base font-extrabold text-slate-800">No Events Added Yet</h4>
+        <div className="flex flex-col items-center justify-center p-6 sm:p-10 text-center border border-dashed border-slate-300 rounded-2xl bg-white space-y-3">
+          <Calendar className="w-8 h-8 text-slate-400" />
+          <h4 className="text-sm font-bold text-slate-800">No Events Added Yet</h4>
           <p className="text-xs text-slate-500 max-w-xs">
             Add campaign meetings or rallies to calculate exact travel times from your Start Hub.
           </p>
@@ -337,7 +317,7 @@ export default function ScheduleTimeline({
             <button
               type="button"
               onClick={onAddEventClick}
-              className="mt-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              className="mt-1 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all flex items-center gap-2"
             >
               <Plus className="w-4 h-4" /> Add Campaign Event
             </button>
@@ -353,142 +333,136 @@ export default function ScheduleTimeline({
           const isCompleted = item.execution?.status === 'COMPLETED';
           const isOverlapping = overlappingEventIds.has(item.event.id);
           const isTravelConflict = travelConflictEventIds.has(item.event.id);
+          const isIssue = isOverlapping || isTravelConflict;
 
           return (
             <div key={item.id} className="relative">
               <div
                 onClick={() => onSelectItem && onSelectItem(item.id)}
-                className={`group relative p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md min-w-0 ${
+                className={`group relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md min-w-0 space-y-2.5 ${
                   isCompleted
-                    ? 'bg-slate-50 opacity-80 border-slate-200'
-                    : isOverlapping || isTravelConflict
-                    ? 'bg-rose-50/90 border-rose-400 ring-2 ring-rose-400/30 shadow-md'
+                    ? 'bg-slate-50 opacity-75 border-slate-200'
+                    : isIssue
+                    ? 'bg-rose-50/60 border-rose-300 ring-1 ring-rose-200'
                     : isSelected
-                    ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20 shadow-md'
-                    : 'bg-white hover:bg-slate-50/80 border-slate-200'
+                    ? 'bg-blue-50/40 border-blue-400 ring-1 ring-blue-300'
+                    : 'bg-white hover:border-slate-300 border-slate-200/80'
                 }`}
               >
                 {/* Sequence Badge */}
                 <div
-                  className={`absolute -left-7 sm:-left-9 top-3.5 sm:top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-md transition-transform group-hover:scale-105 ${
+                  className={`absolute -left-6 sm:-left-8 top-4 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-bold text-[10px] text-white shadow-xs ${
                     isCompleted
-                      ? 'bg-emerald-600 ring-2 ring-emerald-100'
-                      : isOverlapping || isTravelConflict
-                      ? 'bg-rose-600 ring-2 sm:ring-4 ring-rose-200'
-                      : item.event.isFixed
-                      ? 'bg-rose-600 ring-2 sm:ring-4 ring-rose-100'
-                      : 'bg-blue-600 ring-2 sm:ring-4 ring-blue-100'
+                      ? 'bg-emerald-600'
+                      : isIssue
+                      ? 'bg-rose-600 ring-2 ring-rose-100'
+                      : 'bg-slate-900'
                   }`}
                 >
                   {item.sequence}
                 </div>
 
-                {/* Card Header */}
-                <div className="flex items-start justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
-                      {getEventTypeBadge(item.event.eventType)}
-                      {getExecutionBadge(item)}
-                      {isOverlapping && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white flex items-center gap-1 shadow-sm animate-pulse">
-                          <AlertTriangle className="w-3 h-3 text-white" /> Time Conflict Overlap
-                        </span>
-                      )}
-                      {isTravelConflict && !isOverlapping && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1 shadow-sm animate-pulse">
-                          <Clock className="w-3 h-3 text-white" /> Insufficient Travel Time
-                        </span>
-                      )}
-                      {item.event.isFixed && !isOverlapping && !isTravelConflict && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                {/* Card Header: Title & Time */}
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                      <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                        {getEventTypeTag(item.event.eventType)}
+                      </span>
+
+                      {item.event.isFixed && (
+                        <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200/80 flex items-center gap-1">
                           <Lock className="w-2.5 h-2.5" /> Fixed
+                        </span>
+                      )}
+
+                      {isIssue && (
+                        <span className="text-[10px] font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-300 flex items-center gap-1">
+                          <AlertTriangle className="w-2.5 h-2.5 text-rose-600" /> Conflict
                         </span>
                       )}
                     </div>
 
-                    <h4 className={`text-xs sm:text-sm font-bold truncate transition-colors ${isCompleted ? 'line-through text-slate-500' : isOverlapping || isTravelConflict ? 'text-rose-950 font-black' : 'text-slate-900 group-hover:text-blue-600'}`}>
+                    <h4 className={`text-xs sm:text-sm font-bold transition-colors ${isCompleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>
                       {item.event.title}
                     </h4>
                   </div>
 
-                  <div className="text-left sm:text-right shrink-0">
-                    <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border whitespace-nowrap ${isOverlapping || isTravelConflict ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
-                      <Clock className={`w-3 h-3 ${isOverlapping || isTravelConflict ? 'text-rose-600' : 'text-blue-600'}`} />
-                      <span>{item.plannedArrival} – {item.plannedDeparture}</span>
+                  <div className="text-right shrink-0">
+                    <div className={`text-xs font-bold px-2.5 py-1 rounded-lg border whitespace-nowrap ${isIssue ? 'bg-rose-100 text-rose-950 border-rose-300' : 'bg-slate-100 text-slate-900 border-slate-200/80'}`}>
+                      {item.plannedArrival} – {item.plannedDeparture}
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Duration: {item.event.durationMinutes}m</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">{item.event.durationMinutes}m duration</p>
                   </div>
                 </div>
 
-                {/* Location details & Action buttons */}
+                {/* Location Full-Width Address Row */}
                 {loc && (
-                  <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200/80 min-w-0 flex-wrap sm:flex-nowrap">
-                    <div className="flex items-center gap-1.5 truncate min-w-0 flex-1">
-                      <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span className="font-semibold truncate max-w-[140px] sm:max-w-xs">{loc.name}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {onOpenContacts && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenContacts(item);
-                          }}
-                          className="px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] flex items-center gap-1 border border-blue-200"
-                        >
-                          <PhoneCall className="w-3 h-3" /> Contact Organizer
-                        </button>
-                      )}
-
-                      {onEditEvent && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditEvent(item.event);
-                          }}
-                          className="px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-[10px] flex items-center gap-1 border border-amber-200"
-                          title="Edit Event Time & Details"
-                        >
-                          <Edit3 className="w-3 h-3" /> Edit
-                        </button>
-                      )}
-
-                      {onDeleteEvent && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteEvent(item.event.id);
-                          }}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="Remove Event"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                  <div className="text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60 flex items-start gap-1.5 min-w-0">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-800 truncate">{loc.name}</p>
+                      {loc.address && <p className="text-[10px] text-slate-500 truncate">{loc.address}</p>}
                     </div>
                   </div>
                 )}
 
-                {item.event.description && (
-                  <p className="text-[11px] sm:text-xs text-slate-600 mt-1.5 line-clamp-2">{item.event.description}</p>
-                )}
+                {/* Dedicated Action Buttons Row (No Squishing or Overlapping) */}
+                <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    {onOpenContacts && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenContacts(item);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] flex items-center gap-1 border border-slate-200/80 transition-colors"
+                      >
+                        <PhoneCall className="w-3 h-3 text-slate-500" /> Contact Organizer
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {onEditEvent && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditEvent(item.event);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-[10px] flex items-center gap-1 border border-slate-200/80 transition-colors"
+                        title="Edit Event Time & Location"
+                      >
+                        <Edit3 className="w-3 h-3 text-slate-500" /> Edit
+                      </button>
+                    )}
+
+                    {onDeleteEvent && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteEvent(item.event.id);
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title="Remove Event"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Travel & Buffer connector */}
+              {/* Minimalist Travel Connector */}
               {index < items.length - 1 && (
-                <div className="py-1.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] sm:text-[11px] text-slate-600 bg-slate-100/70 my-1 rounded-lg border border-slate-200/70 min-w-0">
-                  <div className="flex items-center gap-1.5 text-blue-700 font-medium truncate">
-                    <Navigation className="w-3 h-3 shrink-0" />
-                    <span className="truncate">Travel: {formatDistance(items[index + 1].travelDistanceMeters)} ({formatDuration(items[index + 1].travelSeconds)})</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-amber-700 font-medium shrink-0">
-                    <ShieldAlert className="w-3 h-3" />
-                    <span>Buffer: {formatDuration(items[index + 1].bufferSeconds)}</span>
-                  </div>
+                <div className="py-1 px-3 flex items-center justify-between gap-1 text-[10px] text-slate-500 bg-slate-100/60 my-1 rounded-lg border border-slate-200/50 min-w-0">
+                  <span className="font-medium truncate">
+                    🚗 Travel: {formatDistance(items[index + 1].travelDistanceMeters)} ({formatDuration(items[index + 1].travelSeconds)})
+                  </span>
+                  <span className="font-medium shrink-0">Buffer: {formatDuration(items[index + 1].bufferSeconds)}</span>
                 </div>
               )}
             </div>
@@ -499,43 +473,37 @@ export default function ScheduleTimeline({
       {endLocation && (
         <div className="relative">
           {hasItems && (
-            <div className="py-2 px-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] sm:text-[11px] text-purple-900 bg-purple-100/70 my-1.5 rounded-xl border border-purple-300/80 shadow-sm min-w-0">
-              <div className="flex items-center gap-1.5 font-bold truncate">
-                <Navigation className="w-3.5 h-3.5 text-purple-700 shrink-0" />
-                <span className="truncate">Return Travel: {formatDistance(endTravelMeters)} ({formatDuration(endTravelSeconds)})</span>
-              </div>
-              <div className="flex items-center gap-1 font-extrabold text-purple-800 bg-white/80 px-2 py-0.5 rounded-md border border-purple-200 whitespace-nowrap shrink-0 self-start sm:self-auto">
-                <Clock className="w-3 h-3 text-purple-600" />
-                <span>Arrive End Hub: {expectedReturnArrival}</span>
-              </div>
+            <div className="py-1.5 px-3 flex items-center justify-between gap-1 text-[10px] text-slate-600 bg-slate-100/80 my-1.5 rounded-xl border border-slate-200/60 min-w-0">
+              <span className="font-medium truncate">Return Travel: {formatDistance(endTravelMeters)} ({formatDuration(endTravelSeconds)})</span>
+              <span className="font-semibold text-slate-700 shrink-0">Arrive End Hub: {expectedReturnArrival}</span>
             </div>
           )}
 
-          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-purple-300/80 bg-purple-50/60 shadow-sm hover:shadow-md transition-all min-w-0">
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 bg-slate-900 text-white shadow-sm hover:shadow-md transition-all min-w-0">
             {/* End Pin Badge */}
-            <div className="absolute -left-7 sm:-left-9 top-3.5 sm:top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-lg ring-2 sm:ring-4 ring-purple-100">
-              <Flag className="w-3.5 h-3.5 text-white" />
+            <div className="absolute -left-6 sm:-left-8 top-4 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-[10px] shadow-md ring-2 ring-white">
+              <Flag className="w-3 h-3 text-white" />
             </div>
 
             <div className="flex items-start justify-between flex-wrap sm:flex-nowrap gap-2 min-w-0">
               <div className="min-w-0 flex-1">
-                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-purple-600 text-white uppercase tracking-wider shadow-sm flex items-center gap-1 w-fit whitespace-nowrap">
-                  <Flag className="w-3 h-3" /> DAY RETURN (END POINT)
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider flex items-center gap-1 w-fit">
+                  <Flag className="w-2.5 h-2.5" /> Day Return Hub
                 </span>
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 mt-1.5 truncate">
+                <h4 className="text-xs sm:text-sm font-bold text-white mt-1 truncate">
                   {endLocation.name}
                 </h4>
                 {endLocation.address && (
-                  <p className="text-[10px] sm:text-[11px] text-slate-600 mt-0.5 flex items-center gap-1 min-w-0">
-                    <MapPin className="w-3 h-3 text-purple-600 shrink-0" />
-                    <span className="truncate max-w-[180px] sm:max-w-xs md:max-w-md block">{endLocation.address}</span>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 min-w-0">
+                    <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span className="truncate max-w-[180px] sm:max-w-xs block">{endLocation.address}</span>
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-purple-900 bg-white px-2 py-1 rounded-lg border border-purple-200 shadow-sm whitespace-nowrap shrink-0">
-                <Clock className="w-3 h-3 text-purple-600" />
-                <span>Return Arrival: {expectedReturnArrival}</span>
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-200 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700 whitespace-nowrap shrink-0">
+                <Clock className="w-3 h-3 text-purple-400" />
+                <span>Return at {expectedReturnArrival}</span>
               </div>
             </div>
           </div>

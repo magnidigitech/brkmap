@@ -780,51 +780,53 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Mobile Bottom View Switcher Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2 flex items-center justify-around shadow-lg">
-        <button
-          onClick={() => setMobileTab('timeline')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-4 rounded-xl transition-all ${
-            mobileTab === 'timeline'
-              ? 'text-blue-600 bg-blue-50'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <ListOrdered className="w-4 h-4" />
-          <span>Timeline</span>
-        </button>
+      {/* Floating Apple-Grade Mobile Bottom Navigation Bar */}
+      <div className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
+        <div className="mx-auto max-w-md bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-full p-1.5 shadow-2xl flex items-center justify-around">
+          <button
+            onClick={() => setMobileTab('timeline')}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ${
+              mobileTab === 'timeline'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <ListOrdered className="w-3.5 h-3.5" />
+            <span>Timeline</span>
+          </button>
 
-        <button
-          onClick={() => setMobileTab('map')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-4 rounded-xl transition-all ${
-            mobileTab === 'map'
-              ? 'text-blue-600 bg-blue-50'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Map className="w-4 h-4" />
-          <span>Map View</span>
-        </button>
+          <button
+            onClick={() => setMobileTab('map')}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ${
+              mobileTab === 'map'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Map className="w-3.5 h-3.5" />
+            <span>Map</span>
+          </button>
 
-        <button
-          onClick={() => setMobileTab('stats')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-3 rounded-xl transition-all ${
-            mobileTab === 'stats'
-              ? 'text-blue-600 bg-blue-50'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <BarChart2 className="w-4 h-4" />
-          <span>Metrics</span>
-        </button>
+          <button
+            onClick={() => setMobileTab('stats')}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ${
+              mobileTab === 'stats'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <BarChart2 className="w-3.5 h-3.5" />
+            <span>Metrics</span>
+          </button>
 
-        <button
-          onClick={() => setIsAddEventOpen(true)}
-          className="flex flex-col items-center gap-1 text-[11px] font-bold py-1 px-3 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all shadow-sm active:scale-95"
-        >
-          <Plus className="w-4 h-4 text-blue-600" />
-          <span>Add Event</span>
-        </button>
+          <button
+            onClick={() => setIsAddEventOpen(true)}
+            className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add</span>
+          </button>
+        </div>
       </div>
 
       {/* Modals */}
