@@ -293,13 +293,27 @@ export default function DashboardPage() {
     setIsAddEventOpen(true);
   };
 
-  const handleAutoAdjustEvents = (eventsToUpdate: EventData[]) => {
-    setEvents((prev) =>
-      prev.map((e) => {
-        const match = eventsToUpdate.find((u) => u.id === e.id);
-        return match ? { ...e, ...match } : e;
-      })
-    );
+  const handleAutoAdjustEvents = async (eventsToUpdate: EventData[]) => {
+    const nextEvents = events.map((e) => {
+      const match = eventsToUpdate.find((u) => u.id === e.id);
+      return match ? { ...e, ...match } : e;
+    });
+
+    setEvents(nextEvents);
+    persistStateToLocalStorage(nextEvents, locations);
+    runInitialOptimization(nextEvents, locations);
+
+    try {
+      for (const updatedEvt of eventsToUpdate) {
+        await fetch('/api/events', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedEvt),
+        });
+      }
+    } catch (err) {
+      console.error('Failed to persist auto-adjusted events to DB:', err);
+    }
   };
 
   const handleOptimizationComplete = (newSchedule: ScheduleData, newConflicts: string[]) => {
