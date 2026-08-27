@@ -28,6 +28,7 @@ import MissedEventDiagnosticModal from '@/components/schedule/MissedEventDiagnos
 import ScheduleComparisonCard from '@/components/v5/ScheduleComparisonCard';
 import MasterScheduleBoard from '@/components/v5/MasterScheduleBoard';
 import LockAndHandoffModal from '@/components/v5/LockAndHandoffModal';
+import LiquidGlassNavBar from '@/components/navigation/LiquidGlassNavBar';
 import SmartScheduleGeneratorWizard from '@/components/v5/SmartScheduleGeneratorWizard';
 import V6AdaptiveLearningPanel from '@/components/v6/V6AdaptiveLearningPanel';
 import V7PredictiveDashboard from '@/components/v7/V7PredictiveDashboard';
@@ -780,54 +781,12 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Floating Apple-Grade Mobile Bottom Navigation Bar */}
-      <div className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
-        <div className="mx-auto max-w-md bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-full p-1.5 shadow-2xl flex items-center justify-around">
-          <button
-            onClick={() => setMobileTab('timeline')}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ${
-              mobileTab === 'timeline'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <ListOrdered className="w-3.5 h-3.5" />
-            <span>Timeline</span>
-          </button>
-
-          <button
-            onClick={() => setMobileTab('map')}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ${
-              mobileTab === 'map'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Map className="w-3.5 h-3.5" />
-            <span>Map</span>
-          </button>
-
-          <button
-            onClick={() => setMobileTab('stats')}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ${
-              mobileTab === 'stats'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <BarChart2 className="w-3.5 h-3.5" />
-            <span>Metrics</span>
-          </button>
-
-          <button
-            onClick={() => setIsAddEventOpen(true)}
-            className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95 shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add</span>
-          </button>
-        </div>
-      </div>
+      {/* Liquid Glass Drag-to-Move Mobile Bottom Navigation Bar */}
+      <LiquidGlassNavBar
+        activeTab={mobileTab}
+        onTabChange={setMobileTab}
+        onAddEventClick={() => setIsAddEventOpen(true)}
+      />
 
       {/* Modals */}
       <OptimizeModal
