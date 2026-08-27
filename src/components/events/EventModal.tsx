@@ -5,7 +5,7 @@ import { EventData, LocationData } from '@/types';
 import PlacesAutocomplete from '../locations/PlacesAutocomplete';
 import { PlaceSearchResult } from '@/lib/google/places';
 import { timeStringToMinutes } from '@/lib/optimizer/constraints';
-import { Plus, X, Calendar, Clock, MapPin, AlertCircle, Lock, Sliders, Check, Sparkles, Edit3 } from 'lucide-react';
+import { Plus, X, Calendar, Clock, MapPin, AlertCircle, Lock, Sliders, Check, Sparkles, Edit3, PhoneCall, User } from 'lucide-react';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -27,6 +27,7 @@ export default function EventModal({
   allEvents = [],
 }: EventModalProps) {
   const [title, setTitle] = useState('');
+  const [eventDate, setEventDate] = useState('2026-08-28');
   const [eventType, setEventType] = useState<EventData['eventType']>('MEETING');
   const [durationMinutes, setDurationMinutes] = useState(45);
   const [priority, setPriority] = useState(75);
@@ -35,6 +36,8 @@ export default function EventModal({
   const [fixedEnd, setFixedEnd] = useState('11:00');
   const [selectedLocId, setSelectedLocId] = useState(locations[0]?.id || '');
   const [description, setDescription] = useState('');
+  const [organizerName, setOrganizerName] = useState('');
+  const [organizerPhone, setOrganizerPhone] = useState('');
 
   // Helper to calculate duration in minutes between start and end times
   const calculateDurationFromTimes = (startStr: string, endStr: string): number => {
@@ -75,6 +78,7 @@ export default function EventModal({
   useEffect(() => {
     if (eventToEdit) {
       setTitle(eventToEdit.title);
+      setEventDate(eventToEdit.date || '2026-08-28');
       setEventType(eventToEdit.eventType);
       setDurationMinutes(eventToEdit.durationMinutes);
       setPriority(eventToEdit.priority);
@@ -88,8 +92,18 @@ export default function EventModal({
       }
       setSelectedLocId(eventToEdit.locationId);
       setDescription(eventToEdit.description || '');
+
+      const mainContact = eventToEdit.contacts?.[0];
+      if (mainContact) {
+        setOrganizerName(mainContact.name || '');
+        setOrganizerPhone(mainContact.phone || '');
+      } else {
+        setOrganizerName('');
+        setOrganizerPhone('');
+      }
     } else {
       setTitle('');
+      setEventDate('2026-08-28');
       setEventType('MEETING');
       setDurationMinutes(45);
       setPriority(75);
@@ -98,6 +112,8 @@ export default function EventModal({
       setFixedEnd('11:00');
       setSelectedLocId(locations[0]?.id || '');
       setDescription('');
+      setOrganizerName('');
+      setOrganizerPhone('');
     }
   }, [eventToEdit, isOpen, locations]);
 
@@ -170,6 +186,17 @@ export default function EventModal({
       ? calculateDurationFromTimes(fixedStart, fixedEnd)
       : Number(durationMinutes);
 
+    const contactPayload = (organizerName.trim() || organizerPhone.trim())
+      ? [
+          {
+            id: `cnt-${Date.now()}`,
+            name: organizerName.trim() || 'Organizer',
+            phone: organizerPhone.trim() || '',
+            role: 'ORGANIZER' as const,
+          },
+        ]
+      : (eventToEdit?.contacts || []);
+
     const eventPayload: EventData = {
       id: eventToEdit ? eventToEdit.id : `evt-${Date.now()}`,
       campaignId: 'cmp-ramakrishna-2026',
@@ -177,7 +204,7 @@ export default function EventModal({
       title,
       description,
       eventType,
-      date: '2026-08-28',
+      date: eventDate,
       preferredStart: isFixed ? fixedStart : '09:00',
       preferredEnd: isFixed ? fixedEnd : '17:00',
       fixedStart: isFixed ? fixedStart : null,
@@ -188,6 +215,7 @@ export default function EventModal({
       isFlexible: !isFixed,
       status: eventToEdit ? eventToEdit.status : 'PLANNED',
       location: chosenLoc,
+      contacts: contactPayload,
     };
 
     if (eventToEdit && onUpdateEvent) {
@@ -212,7 +240,7 @@ export default function EventModal({
                 {eventToEdit ? 'Edit Campaign Event' : 'Add Campaign Event'}
               </h3>
               <p className="text-xs text-slate-500">
-                {eventToEdit ? 'Update event details, timing, priority & venue' : 'Schedule meetings, village visits, rallies, or press meets'}
+                {eventToEdit ? 'Update event details, timing, organizer contact & venue' : 'Schedule meetings, village visits, rallies, or future events'}
               </p>
             </div>
           </div>
@@ -225,17 +253,32 @@ export default function EventModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* 1. Event Title */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 mb-1 block">Event Title</label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Mangalagiri Weavers Public Gathering"
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
+          {/* 1. Event Title & Future Date Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700 mb-1 block">Event Title</label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Mangalagiri Weavers Public Gathering"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-blue-600" /> Event Date
+              </label>
+              <input
+                type="date"
+                required
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
           </div>
 
           {/* 2. Location Picker */}
@@ -330,7 +373,36 @@ export default function EventModal({
             )}
           </div>
 
-          {/* 4. Event Type & Duration */}
+          {/* 4. Organizer Contact Info (Update/Add Contact) */}
+          <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200/80 space-y-2">
+            <label className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+              <PhoneCall className="w-3.5 h-3.5 text-blue-600" /> Event Organizer Contact Info
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-semibold text-slate-600 mb-0.5 block">Organizer Name</label>
+                <input
+                  type="text"
+                  value={organizerName}
+                  onChange={(e) => setOrganizerName(e.target.value)}
+                  placeholder="e.g. Srikanth Varma"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-slate-600 mb-0.5 block">Organizer Phone Number</label>
+                <input
+                  type="tel"
+                  value={organizerPhone}
+                  onChange={(e) => setOrganizerPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Event Type & Duration */}
           <div className={!isFixed ? 'grid grid-cols-2 gap-2.5' : 'block'}>
             <div>
               <label className="text-xs font-bold text-slate-700 mb-1 block">Event Type</label>
@@ -373,7 +445,7 @@ export default function EventModal({
             )}
           </div>
 
-          {/* 5. Priority Score */}
+          {/* 6. Priority Score */}
           <div>
             <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
               <span>Priority Score</span>

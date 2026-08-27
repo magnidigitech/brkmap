@@ -682,14 +682,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* 3 Best Alternatives Comparison (Planning Mode) */}
-            {mode === 'PLANNING' && (
-              <AlternativeSchedulesCard
-                alternatives={alternatives}
-                activeProfile={schedule?.optimizationProfile || 'BALANCED'}
-                onSelectAlternative={handleSelectAlternative}
-              />
-            )}
+
 
             {/* Main Workspace Pane (Split Desktop / Tabbed Mobile) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

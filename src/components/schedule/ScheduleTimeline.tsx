@@ -309,58 +309,57 @@ export default function ScheduleTimeline({
                   <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200/80 min-w-0">
                     <div className="flex items-center gap-1.5 truncate min-w-0 flex-1">
                       <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span className="font-semibold truncate max-w-[150px] sm:max-w-xs">{loc.name}</span>
+                      <span className="font-semibold truncate max-w-[140px] sm:max-w-xs">{loc.name}</span>
                     </div>
 
-                    {onOpenContacts && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenContacts(item);
-                        }}
-                        className="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] flex items-center gap-1 border border-blue-200 shrink-0"
-                      >
-                        <PhoneCall className="w-3 h-3" /> Contact Organizer
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {onOpenContacts && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenContacts(item);
+                          }}
+                          className="px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] flex items-center gap-1 border border-blue-200"
+                        >
+                          <PhoneCall className="w-3 h-3" /> Contact Organizer
+                        </button>
+                      )}
+
+                      {onEditEvent && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditEvent(item.event);
+                          }}
+                          className="px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-[10px] flex items-center gap-1 border border-amber-200"
+                          title="Edit Event Time & Details"
+                        >
+                          <Edit3 className="w-3 h-3" /> Edit
+                        </button>
+                      )}
+
+                      {onDeleteEvent && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteEvent(item.event.id);
+                          }}
+                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Remove Event"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {item.event.description && (
                   <p className="text-[11px] sm:text-xs text-slate-600 mt-1.5 line-clamp-2">{item.event.description}</p>
                 )}
-
-                {/* Action Buttons: Edit & Delete */}
-                <div className="absolute right-2 bottom-2 flex items-center gap-1">
-                  {onEditEvent && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditEvent(item.event);
-                      }}
-                      className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors text-[10px] font-bold flex items-center gap-1 shadow-sm"
-                      title="Edit Event Time & Location"
-                    >
-                      <Edit3 className="w-3 h-3" /> Edit Time
-                    </button>
-                  )}
-
-                  {onDeleteEvent && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteEvent(item.event.id);
-                      }}
-                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                      title="Remove Event"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
               </div>
 
               {/* Travel & Buffer connector */}
