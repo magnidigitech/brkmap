@@ -117,19 +117,21 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (schedule && schedule.items) {
+    if (schedule && schedule.items && locations && locations.length > 0) {
       const activeLoc = locations[2] || locations[0];
-      const live = calculateRealtimeCandidateEta(
-        activeLoc.latitude,
-        activeLoc.longitude,
-        activeLoc.name,
-        schedule.items,
-        campaign.candidateName
-      );
-      const geofence = evaluateGeofenceBoundary(activeLoc.latitude, activeLoc.longitude, activeLoc, 150);
-      live.geofence = geofence;
+      if (activeLoc) {
+        const live = calculateRealtimeCandidateEta(
+          activeLoc.latitude,
+          activeLoc.longitude,
+          activeLoc.name,
+          schedule.items,
+          campaign.candidateName
+        );
+        const geofence = evaluateGeofenceBoundary(activeLoc.latitude, activeLoc.longitude, activeLoc, 150);
+        live.geofence = geofence;
 
-      setLiveStatus(live);
+        setLiveStatus(live);
+      }
     }
   }, [schedule, locations, campaign.candidateName]);
 

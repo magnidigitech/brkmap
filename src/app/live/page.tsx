@@ -77,16 +77,18 @@ export default function CandidateLivePage() {
   };
 
   useEffect(() => {
-    if (schedule && schedule.items) {
+    if (schedule && schedule.items && locations && locations.length > 0) {
       const activeLoc = locations[2] || locations[0];
-      const live = calculateRealtimeCandidateEta(
-        activeLoc.latitude,
-        activeLoc.longitude,
-        activeLoc.name,
-        schedule.items,
-        campaign.candidateName
-      );
-      setLiveStatus(live);
+      if (activeLoc) {
+        const live = calculateRealtimeCandidateEta(
+          activeLoc.latitude,
+          activeLoc.longitude,
+          activeLoc.name,
+          schedule.items,
+          campaign.candidateName
+        );
+        setLiveStatus(live);
+      }
     }
   }, [schedule, locations, campaign.candidateName]);
 
