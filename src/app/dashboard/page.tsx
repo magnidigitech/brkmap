@@ -693,6 +693,10 @@ export default function DashboardPage() {
                       setEditingEvent(null);
                       setIsAddEventOpen(true);
                     }}
+                    startLocation={locations.find((l) => l.id === daySettings.startLocationId) || locations[0] || null}
+                    endLocation={locations.find((l) => l.id === daySettings.endLocationId) || locations[0] || null}
+                    startTime={daySettings.startTime || '08:00'}
+                    endTime={daySettings.endTime || '20:00'}
                   />
                 </div>
               </div>
