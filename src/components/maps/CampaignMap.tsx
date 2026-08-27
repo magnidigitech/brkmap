@@ -1,0 +1,292 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { getGoogleMapsLoader, isGoogleMapsKeyAvailable } from '@/lib/google/client';
+import { LocationData, ScheduleItemData } from '@/types';
+import { formatDistance, formatDuration } from '@/lib/optimizer/constraints';
+import { Compass, MapPin, Navigation, Layers } from 'lucide-react';
+
+interface CampaignMapProps {
+  locations: LocationData[];
+  scheduleItems: ScheduleItemData[];
+  selectedItemId?: string | null;
+  onSelectItem?: (itemId: string) => void;
+}
+
+export default function CampaignMap({
+  locations,
+  scheduleItems,
+  selectedItemId,
+  onSelectItem,
+}: CampaignMapProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+  const googleMapObj = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const polylineRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isGoogleMapsKeyAvailable()) {
+      setUseFallback(true);
+      return;
+    }
+
+    const loader = getGoogleMapsLoader();
+    loader
+      .load()
+      .then((google) => {
+        if (mapRef.current && !googleMapObj.current) {
+          const map = new google.maps.Map(mapRef.current, {
+            center: { lat: 16.3067, lng: 80.4365 }, // Guntur, AP
+            zoom: 12,
+            styles: [
+              { elementType: 'geometry', stylers: [{ color: '#f8fafc' }] },
+              { elementType: 'labels.text.fill', stylers: [{ color: '#334155' }] },
+              { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+              {
+                featureType: 'administrative.country',
+                elementType: 'geometry.stroke',
+                stylers: [{ color: '#cbd5e1' }],
+              },
+              {
+                featureType: 'water',
+                elementType: 'geometry',
+                stylers: [{ color: '#e2e8f0' }],
+              },
+              {
+                featureType: 'road',
+                elementType: 'geometry',
+                stylers: [{ color: '#ffffff' }],
+              },
+            ],
+            disableDefaultUI: false,
+            zoomControl: true,
+          });
+          googleMapObj.current = map;
+          setMapLoaded(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('Google Maps JS API load failed, switching to vector map fallback');
+        setUseFallback(true);
+      });
+  }, []);
+
+  // Render Google Map Markers & Polyline
+  useEffect(() => {
+    if (!googleMapObj.current || !mapLoaded || useFallback) return;
+
+    const google = (window as any).google;
+    if (!google) return;
+
+    // Clear old markers
+    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current = [];
+
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+    }
+
+    const bounds = new google.maps.LatLngBounds();
+    const pathPoints: any[] = [];
+
+    scheduleItems.forEach((item) => {
+      const loc = item.event.location || locations.find((l) => l.id === item.event.locationId);
+      if (!loc) return;
+
+      const pos = { lat: loc.latitude, lng: loc.longitude };
+      bounds.extend(pos);
+      pathPoints.push(pos);
+
+      // Custom marker icon
+      const marker = new google.maps.Marker({
+        position: pos,
+        map: googleMapObj.current,
+        title: `${item.sequence}. ${item.event.title}`,
+        label: {
+          text: `${item.sequence}`,
+          color: '#ffffff',
+          fontWeight: 'bold',
+          fontSize: '13px',
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 15,
+          fillColor: item.event.isFixed ? '#e11d48' : '#2563eb',
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: '#ffffff',
+        },
+      });
+
+      marker.addListener('click', () => {
+        if (onSelectItem) onSelectItem(item.id);
+      });
+
+      markersRef.current.push(marker);
+    });
+
+    if (pathPoints.length > 1) {
+      const polyline = new google.maps.Polyline({
+        path: pathPoints,
+        geodesic: true,
+        strokeColor: '#2563eb',
+        strokeOpacity: 0.9,
+        strokeWeight: 4,
+      });
+      polyline.setMap(googleMapObj.current);
+      polylineRef.current = polyline;
+    }
+
+    if (pathPoints.length > 0) {
+      googleMapObj.current.fitBounds(bounds);
+    }
+  }, [scheduleItems, locations, mapLoaded, useFallback]);
+
+  return (
+    <div className="relative w-full h-full min-h-[350px] sm:min-h-[450px] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex flex-col">
+      {/* Map Control Header */}
+      <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-200 shadow-md flex items-center gap-2.5">
+        <div className="p-1 rounded-lg bg-blue-50 text-blue-600">
+          <Compass className="w-4 h-4 animate-spin-slow" />
+        </div>
+        <div>
+          <h4 className="text-xs font-bold text-slate-800">Campaign Routing Map</h4>
+          <p className="text-[10px] text-slate-500">
+            {scheduleItems.length} Stops • Interactive View
+          </p>
+        </div>
+      </div>
+
+      {!useFallback ? (
+        <div ref={mapRef} className="w-full h-full min-h-[350px] sm:min-h-[450px]" />
+      ) : (
+        <InteractiveVectorMapFallback
+          locations={locations}
+          scheduleItems={scheduleItems}
+          selectedItemId={selectedItemId}
+          onSelectItem={onSelectItem}
+        />
+      )}
+    </div>
+  );
+}
+
+// Fallback Light Vector Map
+function InteractiveVectorMapFallback({
+  locations,
+  scheduleItems,
+  selectedItemId,
+  onSelectItem,
+}: CampaignMapProps) {
+  const lats = locations.map((l) => l.latitude);
+  const lngs = locations.map((l) => l.longitude);
+  const minLat = Math.min(...lats, 16.20);
+  const maxLat = Math.max(...lats, 16.60);
+  const minLng = Math.min(...lngs, 80.30);
+  const maxLng = Math.max(...lngs, 80.70);
+
+  const getXY = (lat: number, lng: number) => {
+    const x = ((lng - minLng) / (maxLng - minLng)) * 76 + 12;
+    const y = 88 - ((lat - minLat) / (maxLat - minLat)) * 76;
+    return { x, y };
+  };
+
+  const scheduledLocs = scheduleItems.map((item) => {
+    const loc = item.event.location || locations.find((l) => l.id === item.event.locationId);
+    return { item, loc };
+  });
+
+  return (
+    <div className="relative w-full h-full min-h-[350px] sm:min-h-[450px] bg-gradient-to-br from-slate-50 via-slate-100 to-blue-50/30 p-4 sm:p-6 flex flex-col justify-between overflow-hidden">
+      {/* Grid Pattern */}
+      <div
+        className="absolute inset-0 opacity-40"
+        style={{
+          backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`,
+          backgroundSize: '20px 20px',
+        }}
+      />
+
+      {/* SVG Polylines */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <defs>
+          <linearGradient id="routeLightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+
+        {scheduledLocs.map(({ item, loc }, idx) => {
+          if (idx === 0 || !loc) return null;
+          const prevLoc = scheduledLocs[idx - 1].loc;
+          if (!prevLoc) return null;
+
+          const p1 = getXY(prevLoc.latitude, prevLoc.longitude);
+          const p2 = getXY(loc.latitude, loc.longitude);
+
+          return (
+            <line
+              key={`line-${idx}`}
+              x1={`${p1.x}%`}
+              y1={`${p1.y}%`}
+              x2={`${p2.x}%`}
+              y2={`${p2.y}%`}
+              stroke="url(#routeLightGradient)"
+              strokeWidth="3.5"
+              strokeDasharray="6,4"
+              className="animate-pulse"
+            />
+          );
+        })}
+      </svg>
+
+      {/* Interactive Location Nodes */}
+      <div className="relative w-full h-full z-10">
+        {scheduledLocs.map(({ item, loc }) => {
+          if (!loc) return null;
+          const { x, y } = getXY(loc.latitude, loc.longitude);
+          const isSelected = selectedItemId === item.id;
+
+          return (
+            <div
+              key={item.id}
+              onClick={() => onSelectItem && onSelectItem(item.id)}
+              style={{ left: `${x}%`, top: `${y}%` }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-20"
+            >
+              <div
+                className={`relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full font-bold text-xs text-white shadow-md transition-all duration-300 transform group-hover:scale-125 ${
+                  isSelected
+                    ? 'bg-amber-500 ring-4 ring-amber-200 scale-125'
+                    : item.event.isFixed
+                    ? 'bg-rose-600 ring-2 ring-rose-200'
+                    : 'bg-blue-600 ring-2 ring-blue-200'
+                }`}
+              >
+                {item.sequence}
+              </div>
+
+              {/* Tooltip Card */}
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white border border-slate-200 rounded-lg p-2 shadow-xl w-44 z-30">
+                <p className="text-[11px] font-bold text-slate-800 truncate">{item.event.title}</p>
+                <p className="text-[10px] text-slate-500 truncate">{loc.name}</p>
+                <div className="mt-1 flex items-center justify-between text-[9px] text-blue-600 font-semibold">
+                  <span>Arr: {item.plannedArrival}</span>
+                  <span>Dist: {formatDistance(item.travelDistanceMeters)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer Info Banner */}
+      <div className="relative z-10 self-end bg-white/90 border border-slate-200 backdrop-blur-md px-3 py-1.5 rounded-xl text-right text-slate-700 text-xs shadow-sm">
+        <p className="font-semibold text-slate-800">Guntur Campaign Bounds</p>
+        <p className="text-[10px] text-slate-500">Live Routes & Travel Times</p>
+      </div>
+    </div>
+  );
+}
