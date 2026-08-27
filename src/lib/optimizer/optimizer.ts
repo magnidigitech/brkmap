@@ -10,6 +10,7 @@ import {
   ScheduleValidationResult,
 } from '@/types';
 import { RoutingProvider, defaultRoutingProvider } from '../google/provider';
+import { calculateHaversineDistance, estimateDrivingDuration } from '../google/routes';
 import { minutesToTimeString, timeStringToMinutes } from './constraints';
 import { calculateDynamicBufferMinutes } from './scoring';
 import { validateScheduleFeasibility } from './validation';
@@ -126,7 +127,17 @@ async function runSingleProfileOptimization(
   const getTravelData = (origId: string, destId: string) => {
     if (origId === destId) return { distanceMeters: 0, durationSeconds: 0 };
     const key = `${origId}:${destId}`;
-    return routeMatrixMap.get(key) || { distanceMeters: 5000, durationSeconds: 600 };
+    const cell = routeMatrixMap.get(key);
+    if (cell && cell.distanceMeters > 0) return cell;
+
+    const loc1 = locations.find((l) => l.id === origId);
+    const loc2 = locations.find((l) => l.id === destId);
+    if (loc1 && loc2) {
+      const dist = calculateHaversineDistance(loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude);
+      const dur = estimateDrivingDuration(dist);
+      return { distanceMeters: dist, durationSeconds: dur };
+    }
+    return { distanceMeters: 5000, durationSeconds: 600 };
   };
 
   const fixedEvents = events

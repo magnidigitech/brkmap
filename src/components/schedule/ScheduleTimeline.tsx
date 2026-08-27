@@ -50,11 +50,16 @@ export default function ScheduleTimeline({
     );
     startTravelSeconds = estimateDrivingDuration(startTravelMeters);
 
-    const stop1ArrivalMins = timeStringToMinutes(items[0].plannedArrival);
     const travelMins = Math.ceil(startTravelSeconds / 60);
-    const leaveMins = stop1ArrivalMins - travelMins - 10; // 10m buffer
-    if (leaveMins > 0) {
-      recommendedLeaveTime = minutesToTimeString(leaveMins);
+    const dayStartMins = timeStringToMinutes(startTime);
+
+    if (items[0].event.isFixed && items[0].event.fixedStart) {
+      const fixedStartMins = timeStringToMinutes(items[0].event.fixedStart);
+      const leaveForFixed = fixedStartMins - travelMins - 10;
+      recommendedLeaveTime = minutesToTimeString(Math.max(dayStartMins, leaveForFixed));
+    } else {
+      // For flexible events, departure is exactly at Day Start Time
+      recommendedLeaveTime = startTime;
     }
   }
 
