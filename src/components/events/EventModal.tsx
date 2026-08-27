@@ -227,8 +227,8 @@ export default function EventModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center py-6 sm:py-8 no-scrollbar">
+      <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto no-scrollbar">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
@@ -462,8 +462,8 @@ export default function EventModal({
             />
           </div>
 
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3">
+          {/* Form Actions (Sticky Bottom Pin) */}
+          <div className="sticky -bottom-4 bg-white border-t border-slate-100 pt-3 pb-1 flex items-center justify-end gap-2.5 z-20">
             <button
               type="button"
               onClick={onClose}
