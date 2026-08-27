@@ -111,6 +111,49 @@ export default function DashboardPage() {
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
   const [isWhatIfModalOpen, setIsWhatIfModalOpen] = useState(false);
 
+  // LocalStorage Keys
+  const LS_EVENTS = 'magni_map_events_v2';
+  const LS_LOCATIONS = 'magni_map_locations_v2';
+  const LS_SETTINGS = 'magni_map_settings_v2';
+
+  // Mount effect to restore from LocalStorage
+  useEffect(() => {
+    try {
+      const cachedEvents = localStorage.getItem(LS_EVENTS);
+      const cachedLocs = localStorage.getItem(LS_LOCATIONS);
+      const cachedSettings = localStorage.getItem(LS_SETTINGS);
+
+      if (cachedEvents) {
+        const parsed = JSON.parse(cachedEvents);
+        if (Array.isArray(parsed) && parsed.length > 0) setEvents(parsed);
+      }
+      if (cachedLocs) {
+        const parsed = JSON.parse(cachedLocs);
+        if (Array.isArray(parsed) && parsed.length > 0) setLocations(parsed);
+      }
+      if (cachedSettings) {
+        const parsed = JSON.parse(cachedSettings);
+        if (parsed && typeof parsed === 'object') setDaySettings(parsed);
+      }
+    } catch (e) {
+      console.warn('LocalStorage cache load warning:', e);
+    }
+  }, []);
+
+  const persistStateToLocalStorage = (nextEvts: EventData[], nextLocs: LocationData[], nextSettings?: DaySettingsData) => {
+    try {
+      localStorage.setItem(LS_EVENTS, JSON.stringify(nextEvts));
+      localStorage.setItem(LS_LOCATIONS, JSON.stringify(nextLocs));
+      if (nextSettings) {
+        localStorage.setItem(LS_SETTINGS, JSON.stringify(nextSettings));
+      } else if (daySettings) {
+        localStorage.setItem(LS_SETTINGS, JSON.stringify(daySettings));
+      }
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+  };
+
   useEffect(() => {
     runInitialOptimization(events, locations);
     loadV5EngineData(events, locations);
@@ -185,12 +228,14 @@ export default function DashboardPage() {
 
   const handleSaveDaySettings = (newSettings: DaySettingsData) => {
     setDaySettings(newSettings);
+    persistStateToLocalStorage(events, locations, newSettings);
     runInitialOptimization(events, locations, newSettings);
   };
 
   const handleAddEvent = async (newEvent: EventData) => {
     const nextEvents = [...events, newEvent];
     setEvents(nextEvents);
+    persistStateToLocalStorage(nextEvents, locations);
     runInitialOptimization(nextEvents, locations);
 
     try {
@@ -207,6 +252,7 @@ export default function DashboardPage() {
   const handleDeleteEvent = async (eventId: string) => {
     const nextEvents = events.filter((e) => e.id !== eventId);
     setEvents(nextEvents);
+    persistStateToLocalStorage(nextEvents, locations);
     if (schedule) {
       setSchedule({
         ...schedule,
@@ -227,6 +273,7 @@ export default function DashboardPage() {
   const handleUpdateEvent = async (updatedEvent: EventData) => {
     const nextEvents = events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e));
     setEvents(nextEvents);
+    persistStateToLocalStorage(nextEvents, locations);
     runInitialOptimization(nextEvents, locations);
 
     try {
