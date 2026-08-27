@@ -163,19 +163,39 @@ export default function DashboardPage() {
     }
   };
 
-  const handleAddEvent = (newEvent: EventData) => {
+  const handleAddEvent = async (newEvent: EventData) => {
     const nextEvents = [...events, newEvent];
     setEvents(nextEvents);
     runInitialOptimization(nextEvents, locations);
+
+    try {
+      await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEvent),
+      });
+    } catch (err) {
+      console.error('Failed to persist new event:', err);
+    }
   };
 
-  const handleDeleteEvent = (eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+  const handleDeleteEvent = async (eventId: string) => {
+    const nextEvents = events.filter((e) => e.id !== eventId);
+    setEvents(nextEvents);
     if (schedule) {
       setSchedule({
         ...schedule,
         items: schedule.items.filter((i) => i.event.id !== eventId),
       });
+    }
+    runInitialOptimization(nextEvents, locations);
+
+    try {
+      await fetch(`/api/events?id=${eventId}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.error('Failed to persist event deletion:', err);
     }
   };
 

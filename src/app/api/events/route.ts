@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 import { INITIAL_EVENTS, INITIAL_LOCATIONS } from '@/lib/db/mock-data';
 import { EventData } from '@/types';
+
+const prisma = new PrismaClient();
 
 let inMemoryEvents: EventData[] = INITIAL_EVENTS.map((e) => ({
   ...e,
@@ -10,6 +13,48 @@ let inMemoryEvents: EventData[] = INITIAL_EVENTS.map((e) => ({
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get('date');
+
+  try {
+    const dbEvents = await prisma.event.findMany({
+      include: { location: true },
+    });
+
+    if (dbEvents && dbEvents.length > 0) {
+      const mapped: EventData[] = dbEvents.map((e) => ({
+        id: e.id,
+        campaignId: e.campaignId,
+        locationId: e.locationId,
+        title: e.title,
+        description: e.description || '',
+        eventType: e.eventType as any,
+        date: e.date,
+        preferredStart: e.preferredStart,
+        preferredEnd: e.preferredEnd,
+        fixedStart: e.fixedStart,
+        fixedEnd: e.fixedEnd,
+        durationMinutes: e.durationMinutes,
+        priority: e.priority,
+        isFixed: e.isFixed,
+        isFlexible: e.isFlexible,
+        status: e.status as any,
+        location: e.location ? {
+          id: e.location.id,
+          campaignId: e.location.campaignId,
+          name: e.location.name,
+          address: e.location.address || '',
+          latitude: e.location.latitude,
+          longitude: e.location.longitude,
+          placeId: e.location.placeId || undefined,
+          category: e.location.category as any,
+        } : undefined,
+      }));
+
+      const filtered = date ? mapped.filter((e) => e.date === date) : mapped;
+      return NextResponse.json({ success: true, events: filtered });
+    }
+  } catch (err) {
+    // Fallback to in-memory state
+  }
 
   let filtered = inMemoryEvents;
   if (date) {
@@ -23,9 +68,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const newEvent: EventData = {
-      id: `evt-${Date.now()}`,
+      id: body.id || `evt-${Date.now()}`,
       campaignId: body.campaignId || 'cmp-guntur-2026',
-      locationId: body.locationId,
+      locationId: body.locationId || INITIAL_LOCATIONS[0].id,
       title: body.title,
       description: body.description || '',
       eventType: body.eventType || 'MEETING',
@@ -39,10 +84,36 @@ export async function POST(request: NextRequest) {
       isFixed: Boolean(body.isFixed),
       isFlexible: !body.isFixed,
       status: 'PLANNED',
-      location: body.location,
+      location: body.location || INITIAL_LOCATIONS[0],
     };
 
     inMemoryEvents.push(newEvent);
+
+    try {
+      await prisma.event.create({
+        data: {
+          id: newEvent.id,
+          campaignId: newEvent.campaignId,
+          locationId: newEvent.locationId,
+          title: newEvent.title,
+          description: newEvent.description,
+          eventType: newEvent.eventType,
+          date: newEvent.date,
+          preferredStart: newEvent.preferredStart,
+          preferredEnd: newEvent.preferredEnd,
+          fixedStart: newEvent.fixedStart,
+          fixedEnd: newEvent.fixedEnd,
+          durationMinutes: newEvent.durationMinutes,
+          priority: newEvent.priority,
+          isFixed: newEvent.isFixed,
+          isFlexible: newEvent.isFlexible,
+          status: newEvent.status,
+        },
+      });
+    } catch (dbErr) {
+      console.warn('Database save warning, retained in memory');
+    }
+
     return NextResponse.json({ success: true, event: newEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to create event' }, { status: 400 });
@@ -55,5 +126,14 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ success: false, error: 'Missing ID' }, { status: 400 });
 
   inMemoryEvents = inMemoryEvents.filter((e) => e.id !== id);
+
+  try {
+    await prisma.event.delete({
+      where: { id },
+    });
+  } catch (dbErr) {
+    // Database delete fallback
+  }
+
   return NextResponse.json({ success: true });
 }
