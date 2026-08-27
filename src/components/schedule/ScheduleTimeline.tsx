@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { EventData, LocationData, ScheduleItemData } from '@/types';
-import { formatDistance, formatDuration } from '@/lib/optimizer/constraints';
+import { formatDistance, formatDuration, timeStringToMinutes, minutesToTimeString } from '@/lib/optimizer/constraints';
+import { calculateHaversineDistance, estimateDrivingDuration } from '@/lib/google/routes';
 import { Clock, MapPin, Navigation, Lock, ShieldAlert, Calendar, Trash2, Edit3, PhoneCall, CheckCircle, AlertTriangle, FastForward, Play, Plus, Flag, Rocket } from 'lucide-react';
 
 interface ScheduleTimelineProps {
@@ -33,6 +34,49 @@ export default function ScheduleTimeline({
   endTime = '20:00',
 }: ScheduleTimelineProps) {
   const hasItems = items && items.length > 0;
+
+  // Calculate Start Hub -> Stop 1 distance and recommended departure time
+  let startTravelMeters = 0;
+  let startTravelSeconds = 0;
+  let recommendedLeaveTime = startTime;
+
+  if (startLocation && hasItems && items[0]?.event?.location) {
+    const loc1 = items[0].event.location;
+    startTravelMeters = calculateHaversineDistance(
+      startLocation.latitude,
+      startLocation.longitude,
+      loc1.latitude,
+      loc1.longitude
+    );
+    startTravelSeconds = estimateDrivingDuration(startTravelMeters);
+
+    const stop1ArrivalMins = timeStringToMinutes(items[0].plannedArrival);
+    const travelMins = Math.ceil(startTravelSeconds / 60);
+    const leaveMins = stop1ArrivalMins - travelMins - 10; // 10m buffer
+    if (leaveMins > 0) {
+      recommendedLeaveTime = minutesToTimeString(leaveMins);
+    }
+  }
+
+  // Calculate Last Stop -> End Hub distance and expected arrival time
+  let endTravelMeters = 0;
+  let endTravelSeconds = 0;
+  let expectedReturnArrival = endTime;
+
+  if (endLocation && hasItems && items[items.length - 1]?.event?.location) {
+    const lastLoc = items[items.length - 1].event.location!;
+    endTravelMeters = calculateHaversineDistance(
+      lastLoc.latitude,
+      lastLoc.longitude,
+      endLocation.latitude,
+      endLocation.longitude
+    );
+    endTravelSeconds = estimateDrivingDuration(endTravelMeters);
+
+    const lastDepartureMins = timeStringToMinutes(items[items.length - 1].plannedDeparture);
+    const travelMins = Math.ceil(endTravelSeconds / 60);
+    expectedReturnArrival = minutesToTimeString(lastDepartureMins + travelMins);
+  }
 
   const getEventTypeBadge = (type: string) => {
     switch (type) {
@@ -70,7 +114,7 @@ export default function ScheduleTimeline({
     <div className="space-y-3 sm:space-y-4 relative">
       <div className="absolute left-4 sm:left-6 top-6 bottom-6 w-0.5 bg-gradient-to-b from-emerald-500 via-blue-500 to-purple-600 opacity-40 pointer-events-none" />
 
-      {/* 🚀 DAY START POINT (DEPARTURE HUB) */}
+      {/* DAY START POINT (DEPARTURE HUB) */}
       {startLocation && (
         <div className="relative">
           <div className="ml-9 sm:ml-12 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-emerald-300/80 bg-emerald-50/60 shadow-sm hover:shadow-md transition-all">
@@ -81,10 +125,10 @@ export default function ScheduleTimeline({
 
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white uppercase tracking-wider shadow-sm">
-                  🚀 Day Departure (Start Point)
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white uppercase tracking-wider shadow-sm flex items-center gap-1.5 w-fit">
+                  <Rocket className="w-3 h-3" /> DAY DEPARTURE (START POINT)
                 </span>
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 mt-1">
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 mt-1.5">
                   {startLocation.name}
                 </h4>
                 {startLocation.address && (
@@ -95,23 +139,23 @@ export default function ScheduleTimeline({
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-xs font-black text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-sm">
                 <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Departure: {startTime}</span>
+                <span>Leave Hub at {recommendedLeaveTime}</span>
               </div>
             </div>
           </div>
 
-          {/* Connector to First Event */}
+          {/* Travel Connector to Stop 1 with Time & Distance */}
           {hasItems && (
-            <div className="ml-9 sm:ml-12 py-1.5 px-3 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 bg-emerald-100/50 my-1 rounded-lg border border-emerald-200/70">
-              <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
-                <Navigation className="w-3 h-3" />
-                <span>Departure to Stop 1</span>
+            <div className="ml-9 sm:ml-12 py-2 px-3.5 flex items-center justify-between text-[11px] text-emerald-900 bg-emerald-100/70 my-1.5 rounded-xl border border-emerald-300/80 shadow-sm">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Navigation className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Travel to Stop 1: {formatDistance(startTravelMeters)} ({formatDuration(startTravelSeconds)})</span>
               </div>
-              <div className="flex items-center gap-1 text-emerald-700 font-medium">
-                <Clock className="w-3 h-3" />
-                <span>Starts {startTime}</span>
+              <div className="flex items-center gap-1 font-extrabold text-emerald-800 bg-white/80 px-2 py-0.5 rounded-md border border-emerald-200">
+                <Clock className="w-3 h-3 text-emerald-600" />
+                <span>Leave {recommendedLeaveTime} → Arrive {items[0].plannedArrival}</span>
               </div>
             </div>
           )}
@@ -124,7 +168,7 @@ export default function ScheduleTimeline({
           <Calendar className="w-10 h-10 text-blue-500 animate-bounce" />
           <h4 className="text-base font-extrabold text-slate-800">No Events Added Yet</h4>
           <p className="text-xs text-slate-500 max-w-xs">
-            Add campaign meetings or rallies to generate your route from your Start Hub.
+            Add campaign meetings or rallies to calculate exact travel times from your Start Hub.
           </p>
           {onAddEventClick && (
             <button
@@ -274,18 +318,18 @@ export default function ScheduleTimeline({
           );
         })}
 
-      {/* 🏁 DAY END POINT (RETURN HUB) */}
+      {/* DAY END POINT (RETURN HUB) */}
       {endLocation && (
         <div className="relative">
           {hasItems && (
-            <div className="ml-9 sm:ml-12 py-1.5 px-3 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 bg-purple-100/50 my-1 rounded-lg border border-purple-200/70">
-              <div className="flex items-center gap-1.5 text-purple-800 font-bold">
-                <Navigation className="w-3 h-3" />
-                <span>Return Travel to End Hub</span>
+            <div className="ml-9 sm:ml-12 py-2 px-3.5 flex items-center justify-between text-[11px] text-purple-900 bg-purple-100/70 my-1.5 rounded-xl border border-purple-300/80 shadow-sm">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Navigation className="w-3.5 h-3.5 text-purple-700" />
+                <span>Return Travel: {formatDistance(endTravelMeters)} ({formatDuration(endTravelSeconds)})</span>
               </div>
-              <div className="flex items-center gap-1 text-purple-700 font-medium">
-                <Clock className="w-3 h-3" />
-                <span>Target Return {endTime}</span>
+              <div className="flex items-center gap-1 font-extrabold text-purple-800 bg-white/80 px-2 py-0.5 rounded-md border border-purple-200">
+                <Clock className="w-3 h-3 text-purple-600" />
+                <span>Arrive End Hub: {expectedReturnArrival}</span>
               </div>
             </div>
           )}
@@ -298,10 +342,10 @@ export default function ScheduleTimeline({
 
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-600 text-white uppercase tracking-wider shadow-sm">
-                  🏁 Day Return (End Point)
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-600 text-white uppercase tracking-wider shadow-sm flex items-center gap-1.5 w-fit">
+                  <Flag className="w-3 h-3" /> DAY RETURN (END POINT)
                 </span>
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 mt-1">
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 mt-1.5">
                   {endLocation.name}
                 </h4>
                 {endLocation.address && (
@@ -312,9 +356,9 @@ export default function ScheduleTimeline({
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-xs font-black text-purple-900 bg-white px-2.5 py-1 rounded-lg border border-purple-200 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900 bg-white px-2.5 py-1 rounded-lg border border-purple-200 shadow-sm">
                 <Clock className="w-3.5 h-3.5 text-purple-600" />
-                <span>Return: {endTime}</span>
+                <span>Return Arrival: {expectedReturnArrival}</span>
               </div>
             </div>
           </div>
